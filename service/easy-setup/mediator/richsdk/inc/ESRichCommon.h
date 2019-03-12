@@ -430,6 +430,14 @@ namespace OIC
                 m_rep.setValue(OC_RSRVD_ES_ENCTYPE, enctype);
             }
 
+            void setDevConfProp(string language,string country,string location)
+            {
+                m_rep.setValue(OC_RSRVD_ES_LANG, language);
+                m_rep.setValue(OC_RSRVD_ES_CTRY, country);
+                m_rep.setValue(OC_RSRVD_ES_LOC, location);
+
+            }
+
             /**
              * Get a SSID of Enroller
              *

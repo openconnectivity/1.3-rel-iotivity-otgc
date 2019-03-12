@@ -147,6 +147,32 @@ OCStackResult OC_CALL OCDiscoverSingleDeviceInUnicast(unsigned short timeout, co
 }
 
 /**
+ * The function is responsible for discovery of owned device in specified secure endpoint/deviceID.
+ * And this function will only return the specified device's response.
+ *
+ * @param[in] timeout Timeout in seconds, value till which function will listen to responses from
+ *                    server before returning the device.
+ * @param[in] deviceID         deviceID of target device.
+ * @param[in] address          Address of target device.
+ * @param[in] port            Secure port in the host.
+ * @param[in] connType       ConnectivityType for discovery.
+ * @param[out] ppFoundDevice     OCProvisionDev_t of found device.
+ * @return OTM_SUCCESS in case of success and other value otherwise.
+ */
+OCStackResult OC_CALL OCDiscoverSingleDeviceInSecureUnicast(bool filterOwnedByMe, unsigned short timeout, const OicUuid_t* deviceID,
+                             const char* address, unsigned int port, OCConnectivityType connectivityType, OCProvisionDev_t **ppFoundDevice)
+{
+    if( NULL == ppFoundDevice || NULL != *ppFoundDevice || 0 == timeout || NULL == address ||
+            NULL == deviceID)
+    {
+        OIC_LOG(ERROR, TAG, "OCDiscoverSingleDeviceInSecureUnicast : Invalid Parameter");
+        return OC_STACK_INVALID_PARAM;
+    }
+
+    return PMDiscoverSingleDeviceInSecureUnicast(filterOwnedByMe, timeout, deviceID, address, port, connectivityType, ppFoundDevice);
+}
+
+/**
  * The function is responsible for discovery of device is current subnet. It will list
  * all the device in subnet which are not yet owned. Please call OCInit with OC_CLIENT_SERVER as
  * OCMode.
@@ -508,7 +534,7 @@ OCStackResult OC_CALL OCGetACL2Resource(void* ctx, const OCProvisionDev_t *selec
 OCStackResult OC_CALL OCGetCSRResource(void* ctx, const OCProvisionDev_t *selectedDeviceInfo,
                                        OCGetCSRResultCB resultCallback)
 {
-    return SRPGetCSRResource(ctx, selectedDeviceInfo, resultCallback);
+    return SRPGetCsrResource(ctx, selectedDeviceInfo, resultCallback);
 }
 
 OCStackResult OC_CALL OCGetRolesResource(void *ctx, const OCProvisionDev_t *selectedDeviceInfo,

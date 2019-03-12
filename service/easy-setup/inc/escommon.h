@@ -66,6 +66,9 @@ extern "C"
 #define OC_RSRVD_ES_DEVNAME                "dn"
 #define OC_RSRVD_ES_HREF                   "href"
 #define OC_RSRVD_ES_CONNECT                "cn"
+#define OC_RSRVD_ES_LANG                "lang"
+#define OC_RSRVD_ES_CTRY                "ctry"
+#define OC_RSRVD_ES_LOC               "loc"
 
 /**
  * Easysetup defined resoruce types and uris.

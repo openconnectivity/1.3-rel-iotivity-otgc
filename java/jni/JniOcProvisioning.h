@@ -91,6 +91,14 @@ JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcProvisioning_discoverSingleDe
  */
 JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcProvisioning_discoverSingleDeviceInUnicast
   (JNIEnv *, jclass, jint, jstring, jstring, jint);
+  
+/*
+ * Class:     org_iotivity_base_OcProvisioning
+ * Method:    discoverSingleDeviceInSecureUnicast0
+ * Signature: (ZILjava/lang/String;Ljava/lang/String;II)Lorg/iotivity/base/OcSecureResource;
+ */
+JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcProvisioning_discoverSingleDeviceInSecureUnicast0
+  (JNIEnv *, jclass, jboolean, jint, jstring, jstring, jint, jint);
 
 /*
  * Class:     org_iotivity_base_OcProvisioning

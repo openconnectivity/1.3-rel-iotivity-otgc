@@ -165,6 +165,8 @@ void JniProvisionResultListner::ProvisionResultCallback(PMResultList_t *result, 
         }
         break;
     case ListenerFunc::PROVISIONCERTIFICATE:
+    case ListenerFunc::PROVISIONIDENTITYCERTIFICATE:
+    case ListenerFunc::PROVISIONROLECERTIFICATE:
         {
             calledFunc = "provisionCertificateListener";
         }

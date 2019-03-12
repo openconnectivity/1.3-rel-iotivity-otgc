@@ -25,6 +25,13 @@
 extern "C" {
 #endif
 
+typedef struct AceIdList AceIdList_t;
+struct AceIdList
+{
+    uint16_t aceid;
+    AceIdList_t *next;
+};
+
 /**
  * Initialize ACL resource by loading data from persistent storage.
  *

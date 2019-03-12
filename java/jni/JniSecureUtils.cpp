@@ -729,93 +729,96 @@ jobject JniSecureUtils::convertOCAclToJavaACL(JNIEnv *env, PMGetAclResult_t *acl
         return nullptr;
     }
     
-    // RownerUUid
-    char * strRownerUuid = NULL;
-    if (OC_STACK_OK != ConvertUuidToStr(&(aclResult->acl->rownerID), &strRownerUuid))
+    if (aclResult->res == OC_STACK_OK && aclResult->acl)
     {
-    	return nullptr;
-    }
-    jstring jStrRownerUuid = env->NewStringUTF(strRownerUuid);
-    OICFree(strRownerUuid);
-    if (!jStrRownerUuid)
-    {
-    	return nullptr;
-    }
-    
-    env->CallVoidMethod(jAcl, g_mid_OcOicSecAcl_set_rownerID, jStrRownerUuid);
-    if (env->ExceptionCheck())
-    {
-        return nullptr;
-    }
-    env->DeleteLocalRef(jStrRownerUuid);
-    
-    jobject jAcesList = env->NewObject(g_cls_LinkedList, g_mid_LinkedList_ctor);
-    if (!jAcesList)
-    {
-        return nullptr;
-    }
-    
-    // List of ACEs
-    OicSecAce_t *acesHead = aclResult->acl->aces;
-    for (OicSecAce_t *ace = acesHead; ace != NULL; ace=ace->next)
-    {
-    	jobject jAce = env->NewObject(g_cls_OcOicSecAcl_ace, g_mid_OcOicSecAcl_ace_ctor);
-    	if (!jAce)
-    	{
-    		return nullptr;
-    	}
-    	
-    	// SubjectType
-    	jobject subject = getSubjectObjectForJava(env, ace);
-    	env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_subject, subject);
-		if (env->ExceptionCheck())
-		{
-			return nullptr;
-		}
-    	
-    	// Permission
-    	jint jPermission = (unsigned int)ace->permission;
-    	env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_permissions, jPermission);
-    	if (env->ExceptionCheck())
-		{
-			return nullptr;
-		}
-		
-		// AceId
-		jint jAceId = (unsigned int)ace->aceid;
-    	env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_aceid, jAceId);
-    	if (env->ExceptionCheck())
-		{
-			return nullptr;
-		}
-		
-		// Resources
-		jobject jResourceList = setResourceListForJavaACL(env, ace->resources);
-		env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_resources, jResourceList);
-		if (env->ExceptionCheck())
-		{
-		    return nullptr;
-		}
-		env->DeleteLocalRef(jResourceList);
-		
-		// Validities
-		
-		// Add ACE to List
-		env->CallBooleanMethod(jAcesList, g_mid_LinkedList_add_object, jAce);
+        // RownerUUid
+        char * strRownerUuid = NULL;
+        if (OC_STACK_OK != ConvertUuidToStr(&(aclResult->acl->rownerID), &strRownerUuid))
+        {
+        	return nullptr;
+        }
+        jstring jStrRownerUuid = env->NewStringUTF(strRownerUuid);
+        OICFree(strRownerUuid);
+        if (!jStrRownerUuid)
+        {
+        	return nullptr;
+        }
+        
+        env->CallVoidMethod(jAcl, g_mid_OcOicSecAcl_set_rownerID, jStrRownerUuid);
         if (env->ExceptionCheck())
         {
             return nullptr;
         }
-        env->DeleteLocalRef(jAce);
+        env->DeleteLocalRef(jStrRownerUuid);
+        
+        jobject jAcesList = env->NewObject(g_cls_LinkedList, g_mid_LinkedList_ctor);
+        if (!jAcesList)
+        {
+            return nullptr;
+        }
+        
+        // List of ACEs
+        OicSecAce_t *acesHead = aclResult->acl->aces;
+        for (OicSecAce_t *ace = acesHead; ace != NULL; ace=ace->next)
+        {
+        	jobject jAce = env->NewObject(g_cls_OcOicSecAcl_ace, g_mid_OcOicSecAcl_ace_ctor);
+        	if (!jAce)
+        	{
+        		return nullptr;
+        	}
+        	
+        	// SubjectType
+        	jobject subject = getSubjectObjectForJava(env, ace);
+        	env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_subject, subject);
+		    if (env->ExceptionCheck())
+		    {
+			    return nullptr;
+		    }
+        	
+        	// Permission
+        	jint jPermission = (unsigned int)ace->permission;
+        	env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_permissions, jPermission);
+        	if (env->ExceptionCheck())
+		    {
+			    return nullptr;
+		    }
+		
+		    // AceId
+		    jint jAceId = (unsigned int)ace->aceid;
+        	env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_aceid, jAceId);
+        	if (env->ExceptionCheck())
+		    {
+			    return nullptr;
+		    }
+		
+		    // Resources
+		    jobject jResourceList = setResourceListForJavaACL(env, ace->resources);
+		    env->CallVoidMethod(jAce, g_mid_OcOicSecAcl_ace_set_resources, jResourceList);
+		    if (env->ExceptionCheck())
+		    {
+		        return nullptr;
+		    }
+		    env->DeleteLocalRef(jResourceList);
+		
+		    // Validities
+		
+		    // Add ACE to List
+		    env->CallBooleanMethod(jAcesList, g_mid_LinkedList_add_object, jAce);
+            if (env->ExceptionCheck())
+            {
+                return nullptr;
+            }
+            env->DeleteLocalRef(jAce);
+        }
+        
+        // Set List to ACL
+        env->CallVoidMethod(jAcl, g_mid_OcOicSecAcl_set_aces, jAcesList);
+        if (env->ExceptionCheck())
+        {
+            return nullptr;
+        }
+        env->DeleteLocalRef(jAcesList);
     }
-    
-    // Set List to ACL
-    env->CallVoidMethod(jAcl, g_mid_OcOicSecAcl_set_aces, jAcesList);
-    if (env->ExceptionCheck())
-    {
-        return nullptr;
-    }
-    env->DeleteLocalRef(jAcesList);
 	
 	return jAcl;
 }
@@ -828,146 +831,149 @@ jobject JniSecureUtils::convertOCCredToJavaCred(JNIEnv *env, PMGetCredsResult_t 
         return nullptr;
     }
     
-    // RownerUUid
-    char * strRownerUuid = NULL;
-    if (OC_STACK_OK != ConvertUuidToStr(credResult->creds->rownerID, &strRownerUuid))
+    if (credResult->res == OC_STACK_OK && credResult->creds)
     {
-    	return nullptr;
-    }
-    jstring jStrRownerUuid = env->NewStringUTF(strRownerUuid);
-    OICFree(strRownerUuid);
-    if (!jStrRownerUuid)
-    {
-    	return nullptr;
-    }
-    
-    env->CallVoidMethod(jCreds, g_mid_OcOicSecCreds_set_rownerID, jStrRownerUuid);
-    if (env->ExceptionCheck())
-    {
-        return nullptr;
-    }
-    env->DeleteLocalRef(jStrRownerUuid);
-    
-    jobject jCredList = env->NewObject(g_cls_LinkedList, g_mid_LinkedList_ctor);
-    if (!jCredList)
-    {
-        return nullptr;
-    }
-    
-    // List of credentials
-    OicSecCred_t *credsHead = credResult->creds->creds;
-    for (OicSecCred_t *cred = credsHead; cred != NULL; cred = cred->next)
-    {
-    	jobject jCred = env->NewObject(g_cls_OcOicSecCreds_cred, g_mid_OcOicSecCreds_cred_ctor);
-    	if (!jCred)
-    	{
-    		return nullptr;
-    	}
-		
-		// CredId
-		jint jCredId = (unsigned int)cred->credId;
-    	env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_credid, jCredId);
-    	if (env->ExceptionCheck())
-		{
-			return nullptr;
-		}
-		
-		// SubjectType
-		char *strSubject = NULL;
-		if (OC_STACK_OK != ConvertUuidToStr(&(cred->subject), &strSubject))
-		{
-			return nullptr;
-		}
-		jstring jStrSubject = env->NewStringUTF(strSubject);
-		OICFree(strSubject);
-		if (!jStrSubject)
-		{
-			return nullptr;
-		}
-    	env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_subject, jStrSubject);
-		if (env->ExceptionCheck())
-		{
-			return nullptr;
-		}
-		
-		// OicSecRole
-		// If roleId is all zeros, this property is not set in response
-		OicSecRole_t EMPTY_ROLE = { .id = { 0 }, .authority = { 0 } };
-		jobject jRole = NULL;
-		if (0 != memcmp(&cred->roleId.id, &EMPTY_ROLE.id, sizeof(EMPTY_ROLE.id)))
-		{
-			char *roleId = cred->roleId.id;
-			jstring jStrRoleId = env->NewStringUTF(roleId);
-			if (!jStrRoleId)
-			{
-				return nullptr;
-			}
-			
-			jstring jStrRoleAuthority = env->NewStringUTF("");
-			if (0 != memcmp(&cred->roleId.authority, &EMPTY_ROLE.authority, sizeof(EMPTY_ROLE.authority)))
-			{
-				char *roleAuthority = cred->roleId.authority;
-				jStrRoleAuthority = env->NewStringUTF(roleAuthority);
-				if (!jStrRoleAuthority)
-				{
-					return nullptr;
-				}
-			}
-		
-			jRole = env->NewObject(g_cls_OcOicSecCreds_cred_role, g_mid_OcOicSecCreds_cred_role_ctor, jStrRoleId, jStrRoleAuthority);
-			env->DeleteLocalRef(jStrRoleId);
-			env->DeleteLocalRef(jStrRoleAuthority);
-			
-			env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_role, jRole);
-			if (env->ExceptionCheck())
-			{
-				return nullptr;
-			}
-			env->DeleteLocalRef(jRole);
-		}
-		
-		
-		// CredType
-		jint jCredType = (unsigned int)cred->credType;
-    	env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_credtype, jCredType);
-    	if (env->ExceptionCheck())
-		{
-			return nullptr;
-		}
-		
-		// CredUsage
-		if (cred->credUsage)
-		{
-		    jstring jStrCredUsage = env->NewStringUTF(cred->credUsage);
-		    if (!jStrCredUsage)
-		    {
-			    return nullptr;
-		    }
-            
-            env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_credusage, jStrCredUsage);
-            if (env->ExceptionCheck())
-            {
-                return nullptr;
-            }
-            env->DeleteLocalRef(jStrCredUsage);
-		}
-		
-		// Add Cred to List
-		env->CallBooleanMethod(jCredList, g_mid_LinkedList_add_object, jCred);
+        // RownerUUid
+        char * strRownerUuid = NULL;
+        if (OC_STACK_OK != ConvertUuidToStr(credResult->creds->rownerID, &strRownerUuid))
+        {
+        	return nullptr;
+        }
+        jstring jStrRownerUuid = env->NewStringUTF(strRownerUuid);
+        OICFree(strRownerUuid);
+        if (!jStrRownerUuid)
+        {
+        	return nullptr;
+        }
+        
+        env->CallVoidMethod(jCreds, g_mid_OcOicSecCreds_set_rownerID, jStrRownerUuid);
         if (env->ExceptionCheck())
         {
             return nullptr;
         }
-        env->DeleteLocalRef(jCred);
+        env->DeleteLocalRef(jStrRownerUuid);
+        
+        jobject jCredList = env->NewObject(g_cls_LinkedList, g_mid_LinkedList_ctor);
+        if (!jCredList)
+        {
+            return nullptr;
+        }
+        
+        // List of credentials
+        OicSecCred_t *credsHead = credResult->creds->creds;
+        for (OicSecCred_t *cred = credsHead; cred != NULL; cred = cred->next)
+        {
+        	jobject jCred = env->NewObject(g_cls_OcOicSecCreds_cred, g_mid_OcOicSecCreds_cred_ctor);
+        	if (!jCred)
+        	{
+        		return nullptr;
+        	}
+		
+		    // CredId
+		    jint jCredId = (unsigned int)cred->credId;
+        	env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_credid, jCredId);
+        	if (env->ExceptionCheck())
+		    {
+			    return nullptr;
+		    }
+		
+		    // SubjectType
+		    char *strSubject = NULL;
+		    if (OC_STACK_OK != ConvertUuidToStr(&(cred->subject), &strSubject))
+		    {
+			    return nullptr;
+		    }
+		    jstring jStrSubject = env->NewStringUTF(strSubject);
+		    OICFree(strSubject);
+		    if (!jStrSubject)
+		    {
+			    return nullptr;
+		    }
+        	env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_subject, jStrSubject);
+		    if (env->ExceptionCheck())
+		    {
+			    return nullptr;
+		    }
+		
+		    // OicSecRole
+		    // If roleId is all zeros, this property is not set in response
+		    OicSecRole_t EMPTY_ROLE = { .id = { 0 }, .authority = { 0 } };
+		    jobject jRole = NULL;
+		    if (0 != memcmp(&cred->roleId.id, &EMPTY_ROLE.id, sizeof(EMPTY_ROLE.id)))
+		    {
+			    char *roleId = cred->roleId.id;
+			    jstring jStrRoleId = env->NewStringUTF(roleId);
+			    if (!jStrRoleId)
+			    {
+				    return nullptr;
+			    }
+			
+			    jstring jStrRoleAuthority = env->NewStringUTF("");
+			    if (0 != memcmp(&cred->roleId.authority, &EMPTY_ROLE.authority, sizeof(EMPTY_ROLE.authority)))
+			    {
+				    char *roleAuthority = cred->roleId.authority;
+				    jStrRoleAuthority = env->NewStringUTF(roleAuthority);
+				    if (!jStrRoleAuthority)
+				    {
+					    return nullptr;
+				    }
+			    }
+		
+			    jRole = env->NewObject(g_cls_OcOicSecCreds_cred_role, g_mid_OcOicSecCreds_cred_role_ctor, jStrRoleId, jStrRoleAuthority);
+			    env->DeleteLocalRef(jStrRoleId);
+			    env->DeleteLocalRef(jStrRoleAuthority);
+			
+			    env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_role, jRole);
+			    if (env->ExceptionCheck())
+			    {
+				    return nullptr;
+			    }
+			    env->DeleteLocalRef(jRole);
+		    }
+		
+		
+		    // CredType
+		    jint jCredType = (unsigned int)cred->credType;
+        	env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_credtype, jCredType);
+        	if (env->ExceptionCheck())
+		    {
+			    return nullptr;
+		    }
+		
+		    // CredUsage
+		    if (cred->credUsage)
+		    {
+		        jstring jStrCredUsage = env->NewStringUTF(cred->credUsage);
+		        if (!jStrCredUsage)
+		        {
+			        return nullptr;
+		        }
+                
+                env->CallVoidMethod(jCred, g_mid_OcOicSecCreds_cred_set_credusage, jStrCredUsage);
+                if (env->ExceptionCheck())
+                {
+                    return nullptr;
+                }
+                env->DeleteLocalRef(jStrCredUsage);
+		    }
+		
+		    // Add Cred to List
+		    env->CallBooleanMethod(jCredList, g_mid_LinkedList_add_object, jCred);
+            if (env->ExceptionCheck())
+            {
+                return nullptr;
+            }
+            env->DeleteLocalRef(jCred);
+        }
+        
+        // Set List to Creds
+        env->CallVoidMethod(jCreds, g_mid_OcOicSecCreds_set_creds, jCredList);
+        if (env->ExceptionCheck())
+        {
+            return nullptr;
+        }
+        env->DeleteLocalRef(jCredList);
     }
-    
-    // Set List to Creds
-    env->CallVoidMethod(jCreds, g_mid_OcOicSecCreds_set_creds, jCredList);
-    if (env->ExceptionCheck())
-    {
-        return nullptr;
-    }
-    env->DeleteLocalRef(jCredList);
 	
 	return jCreds;
 }

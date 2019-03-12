@@ -34,7 +34,8 @@ typedef enum
     PSK_TYPE,                             /**< Pre-Shared Key.**/
     CERT_TYPE,                            /**< X.509 certificate.**/
     MOT_TYPE,                             /**< Multiple Ownership Transfer.**/
-    CREDS_TYPE                             /**< Credentials.**/
+    CREDS_TYPE,                           /**< Credentials.**/
+    UNLINK_TYPE
 } DataType_t;
 
 /**
@@ -122,7 +123,7 @@ OCStackResult SRPGetACLResource(void *ctx, const OCProvisionDev_t *selectedDevic
  *            provisioning request recieves a response from resource server.
  * @return OC_STACK_OK in case of success and other value otherwise.
  */
-OCStackResult SRPGetCSRResource(void *ctx, const OCProvisionDev_t *selectedDeviceInfo,
+OCStackResult SRPGetCsrResource(void *ctx, const OCProvisionDev_t *selectedDeviceInfo,
                                 OCGetCSRResultCB resultCallback);
 
 /**

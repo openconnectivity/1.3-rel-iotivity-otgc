@@ -72,7 +72,12 @@ OCStackResult JniOcResource::get(JNIEnv* env, const QueryParamsMap &queryParamet
         onGetListener->onGetCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->get(queryParametersMap, getCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->get(queryParametersMap, getCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::get(JNIEnv* env, const QueryParamsMap &queryParametersMap, jobject jListener,
@@ -86,7 +91,12 @@ OCStackResult JniOcResource::get(JNIEnv* env, const QueryParamsMap &queryParamet
         onGetListener->onGetCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->get(queryParametersMap, getCallback, QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->get(queryParametersMap, getCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::get(
@@ -104,8 +114,13 @@ OCStackResult JniOcResource::get(
         onGetListener->onGetCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->get(resourceType, resourceInterface, queryParametersMap,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->get(resourceType, resourceInterface, queryParametersMap,
         getCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::get(JNIEnv* env, const std::string &resourceType,
@@ -120,8 +135,13 @@ OCStackResult JniOcResource::get(JNIEnv* env, const std::string &resourceType,
         onGetListener->onGetCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->get(resourceType, resourceInterface, queryParametersMap,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->get(resourceType, resourceInterface, queryParametersMap,
         getCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::put(JNIEnv* env, const OCRepresentation &representation,
@@ -135,7 +155,12 @@ OCStackResult JniOcResource::put(JNIEnv* env, const OCRepresentation &representa
         onPutListener->onPutCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->put(representation, queryParametersMap, putCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->put(representation, queryParametersMap, putCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::put(JNIEnv* env, const OCRepresentation &representation,
@@ -149,7 +174,12 @@ OCStackResult JniOcResource::put(JNIEnv* env, const OCRepresentation &representa
         onPutListener->onPutCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->put(representation, queryParametersMap, putCallback, QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->put(representation, queryParametersMap, putCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::put(JNIEnv* env, const std::string &resourceType,
@@ -164,8 +194,13 @@ OCStackResult JniOcResource::put(JNIEnv* env, const std::string &resourceType,
         onPutListener->onPutCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->put(resourceType, resourceInterface, representation,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->put(resourceType, resourceInterface, representation,
         queryParametersMap, putCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::put(JNIEnv* env, const std::string &resourceType,
@@ -180,8 +215,13 @@ OCStackResult JniOcResource::put(JNIEnv* env, const std::string &resourceType,
         onPutListener->onPutCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->put(resourceType, resourceInterface, representation,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->put(resourceType, resourceInterface, representation,
         queryParametersMap, putCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::post(JNIEnv* env, const OCRepresentation &representation,
@@ -195,7 +235,12 @@ OCStackResult JniOcResource::post(JNIEnv* env, const OCRepresentation &represent
         onPostListener->onPostCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->post(representation, queryParametersMap, postCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->post(representation, queryParametersMap, postCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::post(JNIEnv* env, const OCRepresentation &representation,
@@ -209,7 +254,12 @@ OCStackResult JniOcResource::post(JNIEnv* env, const OCRepresentation &represent
         onPostListener->onPostCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->post(representation, queryParametersMap, postCallback, QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->post(representation, queryParametersMap, postCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::post(JNIEnv* env, const std::string &resourceType,
@@ -224,8 +274,13 @@ OCStackResult JniOcResource::post(JNIEnv* env, const std::string &resourceType,
         onPostListener->onPostCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->post(resourceType, resourceInterface, representation,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->post(resourceType, resourceInterface, representation,
         queryParametersMap, postCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::post(JNIEnv* env, const std::string &resourceType,
@@ -240,8 +295,13 @@ OCStackResult JniOcResource::post(JNIEnv* env, const std::string &resourceType,
         onPostListener->onPostCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->post(resourceType, resourceInterface, representation,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->post(resourceType, resourceInterface, representation,
         queryParametersMap, postCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::deleteResource(JNIEnv* env, jobject jListener)
@@ -254,7 +314,12 @@ OCStackResult JniOcResource::deleteResource(JNIEnv* env, jobject jListener)
         onDeleteListener->onDeleteCallback(opts, eCode);
     };
 
-    return m_sharedResource->deleteResource(deleteCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->deleteResource(deleteCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::deleteResource(JNIEnv* env, jobject jListener, QualityOfService QoS)
@@ -266,7 +331,12 @@ OCStackResult JniOcResource::deleteResource(JNIEnv* env, jobject jListener, Qual
         onDeleteListener->onDeleteCallback(opts, eCode);
     };
 
-    return m_sharedResource->deleteResource(deleteCallback, QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->deleteResource(deleteCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::observe(JNIEnv* env, ObserveType observeType,
@@ -280,7 +350,12 @@ OCStackResult JniOcResource::observe(JNIEnv* env, ObserveType observeType,
         onObserveListener->onObserveCallback(opts, rep, eCode, sequenceNumber);
     };
 
-    return m_sharedResource->observe(observeType, queryParametersMap, observeCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->observe(observeType, queryParametersMap, observeCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::observe(JNIEnv* env, ObserveType observeType,
@@ -294,7 +369,12 @@ OCStackResult JniOcResource::observe(JNIEnv* env, ObserveType observeType,
         onObserveListener->onObserveCallback(opts, rep, eCode, sequenceNumber);
     };
 
-    return m_sharedResource->observe(observeType, queryParametersMap, observeCallback, QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->observe(observeType, queryParametersMap, observeCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::cancelObserve(JNIEnv* env, QualityOfService qos)
@@ -305,7 +385,12 @@ OCStackResult JniOcResource::cancelObserve(JNIEnv* env, QualityOfService qos)
     {
         this->m_onObserveManager.removeAllListeners(env);
     }
-    return m_sharedResource->cancelObserve(qos);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->cancelObserve(qos);
+    }
+    return ret;
 }
 
 void JniOcResource::setHeaderOptions(const HeaderOptions &headerOptions)
@@ -471,7 +556,12 @@ OCStackResult JniOcResource::discoveryMQTopics(JNIEnv* env,
         onTopicFoundListener->foundTopicCallback(eCode, uri, resource);
     };
 
-    return m_sharedResource->discoveryMQTopics(queryParametersMap, findCallback, QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->discoveryMQTopics(queryParametersMap, findCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::createMQTopic(JNIEnv* env,
@@ -486,9 +576,14 @@ OCStackResult JniOcResource::createMQTopic(JNIEnv* env,
         onTopicCreatedListener->createdTopicCallback(eCode, uri, resource);
     };
 
-    return m_sharedResource->createMQTopic(representation, targetUri,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->createMQTopic(representation, targetUri,
                                            queryParametersMap,
                                            createCallback, QoS);
+    }
+    return ret;
 }
 #endif
 #ifdef MQ_SUBSCRIBER
@@ -503,13 +598,23 @@ OCStackResult JniOcResource::subscribeMQTopic(JNIEnv* env,
         onSubscribeListener->onSubscribeCallback(opts, rep, eCode, sequenceNumber);
     };
 
-    return m_sharedResource->subscribeMQTopic(ObserveType::Observe, queryParametersMap,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->subscribeMQTopic(ObserveType::Observe, queryParametersMap,
                                               subscribeCallback, QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::unsubscribeMQTopic(QualityOfService QoS)
 {
-    return m_sharedResource->unsubscribeMQTopic(QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->unsubscribeMQTopic(QoS);
+    }
+    return ret;
 }
 
 OCStackResult JniOcResource::requestMQPublish(JNIEnv* env,
@@ -523,7 +628,12 @@ OCStackResult JniOcResource::requestMQPublish(JNIEnv* env,
         onPostListener->onPostCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->requestMQPublish(queryParametersMap, postCallback, QoS);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->requestMQPublish(queryParametersMap, postCallback, QoS);
+    }
+    return ret;
 }
 #endif
 #ifdef MQ_PUBLISHER
@@ -538,8 +648,13 @@ OCStackResult JniOcResource::publishMQTopic(JNIEnv* env, const OCRepresentation 
         onPostListener->onPostCallback(opts, rep, eCode);
     };
 
-    return m_sharedResource->publishMQTopic(representation, queryParametersMap,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedResource)
+    {
+        ret = m_sharedResource->publishMQTopic(representation, queryParametersMap,
                                             postCallback, QoS);
+    }
+    return ret;
 }
 #endif
 

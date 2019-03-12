@@ -58,5 +58,5 @@ if target_os not in ['msys_nt', 'windows']:
 
 SConscript('src/SConscript', 'provisioning_env')
 
-if target_os in ['linux', 'msys_nt', 'windows', 'tizen']:
+if (target_os in ['linux', 'msys_nt', 'windows', 'tizen'] and provisioning_env.get('BUILD_SAMPLE') == 'ON'):
     SConscript('sample/SConscript', 'provisioning_env')

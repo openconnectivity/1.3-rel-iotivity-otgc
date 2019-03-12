@@ -3398,6 +3398,10 @@ OCStackResult OC_CALL OCDoRequest(OCDoHandle *handle,
         *devAddr = *destination;
     }
 
+    if (destination)
+    {
+        strcpy(devAddr->remoteId, destination->remoteId);
+    }
     if (devAddr)
     {
         OIC_LOG_V(DEBUG, TAG, "remoteId of devAddr : %s", devAddr->remoteId);
@@ -3643,12 +3647,10 @@ OCStackResult OC_CALL OCDoRequest(OCDoHandle *handle,
     bool isEndpointSecure = ((endpoint.flags & CA_SECURE) != 0);
     bool requestContainsRolesUri = (strcmp(requestInfo.info.resourceUri, OIC_RSRC_ROLES_URI) == 0);
     bool requestContainsDoxmResource = (strcmp(requestInfo.info.resourceUri, OIC_RSRC_DOXM_URI) == 0);
-    bool isTcpConnectivityType = (CT_ADAPTER_TCP == connectivityType);
     bool requestContainsKeepaliveUri = (strcmp(requestInfo.info.resourceUri, OC_RSRVD_KEEPALIVE_URI) == 0);
 
     if (isEndpointSecure && (isProxyRequest ||
-        (!requestContainsRolesUri && !requestContainsDoxmResource &&
-         isTcpConnectivityType && !requestContainsKeepaliveUri)))
+        (!requestContainsRolesUri && !requestContainsDoxmResource && !requestContainsKeepaliveUri)))
     {
         CASecureEndpoint_t sep;
         CAResult_t caRes = CAGetSecureEndpointData(&endpoint, &sep);

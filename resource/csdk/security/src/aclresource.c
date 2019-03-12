@@ -89,14 +89,6 @@ static uint16_t gAceFreeId = ACE_ID_FIRST_FREE;
 
 static oc_mutex g_AceIdCounterMutex = NULL;
 
-typedef struct AceIdList AceIdList_t;
-
-struct AceIdList
-{
-    uint16_t aceid;
-    AceIdList_t *next;
-};
-
 void FreeRsrc(OicSecRsrc_t *rsrc)
 {
     //Clean each member of resource

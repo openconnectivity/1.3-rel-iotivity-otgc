@@ -295,6 +295,28 @@ namespace OC
                     const std::string& hostAddress,
                     OCConnectivityType connType,
                     std::shared_ptr<OCSecureResource> &foundDevice);
+            
+            /**
+             * API is responsible for discovery of devices in specified secure endpoint/deviceID.
+             * And this function will only return the specified device's response.
+             *
+             * @param timeout Timeout in seconds, time until which function will listen to
+             *                    responses from server before returning the specified device.
+             * @param deviceID  deviceID of target device.
+             * @param address   Address of the target device
+             * @param port      Secure port in the host.
+             * @param connType  ConnectivityType for discovery.
+             * @param foundDevice OCSecureResource object of found device.
+             * @return ::OC_STACK_OK in case of success and other value otherwise.
+             *         ::OC_STACK_INVALID_PARAM when deviceID is NULL or ppFoundDevice is not
+             *                                  initailized.
+             */
+            static OCStackResult discoverSingleDeviceInSecureUnicast(bool filterOwnedByMe, unsigned short timeout,
+                    const OicUuid_t* deviceID,
+                    const std::string& address,
+                    unsigned int port,
+                    OCConnectivityType connectivityType,
+                    std::shared_ptr<OCSecureResource> &foundDevice);
 
 #ifdef MULTIPLE_OWNER
              /**

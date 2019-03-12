@@ -28,6 +28,7 @@
 #include "credresource.h"
 #if defined(__WITH_DTLS__) || defined(__WITH_TLS__)
 #include "crlresource.h"
+#include "pkix_interface.h"
 #endif /* (__WITH_DTLS__) || (__WITH_TLS__) */
 #include "doxmresource.h"
 #include "pstatresource.h"
@@ -126,6 +127,13 @@ static bool IsReadyToEnterRFNOP()
 
     // Verify each rowneruuid, devowneruuid has a corresponding /cred entry
     // TODO [IOT-2023]
+    
+    // Restore callbacks
+#if defined(__WITH_DTLS__) || defined(__WITH_TLS__)
+    VERIFY_SUCCESS(TAG, CA_STATUS_OK == CAregisterPkixInfoHandler(GetPkixInfo), ERROR);
+    VERIFY_SUCCESS(TAG, CA_STATUS_OK == CAregisterIdentityHandler(GetIdentityHandler), ERROR);
+    VERIFY_SUCCESS(TAG, CA_STATUS_OK == CAregisterGetCredentialTypesHandler(InitCipherSuiteList), ERROR);
+#endif // __WITH_DTLS__ or __WITH_TLS__
 
     ret = true;
 
@@ -363,6 +371,13 @@ static bool EnterRESET()
     // function in IoTivity).
     // TODO [IOT-2633]:
     VERIFY_SUCCESS(TAG, OC_STACK_OK == ResetSecureResources(), ERROR);
+    
+#if defined(__WITH_DTLS__) || defined(__WITH_TLS__)
+    VERIFY_SUCCESS(TAG, CA_STATUS_OK == CAregisterPskCredentialsHandler(GetDtlsPskCredentials), ERROR);
+    VERIFY_SUCCESS(TAG, CA_STATUS_OK == CAregisterPkixInfoHandler(GetPkixInfo), ERROR);
+    VERIFY_SUCCESS(TAG, CA_STATUS_OK == CAregisterIdentityHandler(GetIdentityHandler), ERROR);
+    VERIFY_SUCCESS(TAG, CA_STATUS_OK == CAregisterGetCredentialTypesHandler(InitCipherSuiteList), ERROR);
+#endif // __WITH_DTLS__ or __WITH_TLS__
 
     // Set doxm.deviceuuid = Mfr Default (handled above)
     // Set doxm.sct = Mfr Default ("")

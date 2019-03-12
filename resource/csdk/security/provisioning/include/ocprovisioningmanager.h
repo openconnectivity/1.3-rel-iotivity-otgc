@@ -95,6 +95,23 @@ OCStackResult OC_CALL OCDiscoverSingleDeviceInUnicast(unsigned short timeout, co
                              OCProvisionDev_t **ppFoundDevice);
 
 /**
+ * The function is responsible for discovery of owned device in specified  secure endpoint/MAC
+ * address.
+ * It will return the found device even though timeout is not exceeded.
+ *
+ * @param[in] timeout Timeout in seconds, value till which function will listen to responses from
+ *                    server before returning the device.
+ * @param[in] deviceID         deviceID of target device.
+ * @param[in] address       Address of target device.
+ * @param[in] port          Secure port in the host.
+ * @param[in] connType       ConnectivityType for discovery.
+ * @param[out] ppFoundDevice     OCProvisionDev_t of found device.
+ * @return OTM_SUCCESS in case of success and other value otherwise.
+ */
+OCStackResult OC_CALL OCDiscoverSingleDeviceInSecureUnicast(bool filterOwnedByMe, unsigned short timeout, const OicUuid_t* deviceID, const char* address,
+                             unsigned int port, OCConnectivityType connectivityType, OCProvisionDev_t **ppFoundDevice);
+
+/**
  * The function is responsible for discovery of device is current subnet. It will list
  * all the device in subnet which are not yet owned. Please call OCInit with OC_CLIENT_SERVER as
  * OCMode.

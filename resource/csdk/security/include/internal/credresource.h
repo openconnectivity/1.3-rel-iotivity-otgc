@@ -220,6 +220,16 @@ int32_t GetDtlsPskCredentials( CADtlsPskCredType_t type,
               const unsigned char *desc, size_t desc_len,
               unsigned char *result, size_t result_length);
 
+/*
+ * This internal callback is used to retrieve UUIDs from CRED
+ * entries that have matching publicData.
+ *
+ * @param ctx context holding UUID list
+ * @param p pointer to the DER-encoded certificate
+ * @param len length of the DER-encoded certificate
+ */
+ void GetIdentityHandler(UuidContext_t* ctx, unsigned char* p, size_t len);
+
 /**
  * Add temporal PSK to PIN based OxM.
  *
@@ -305,6 +315,12 @@ void GetPemOwnCert(ByteArray_t * crt, const char * usage);
  * @param[in] usage credential usage string.
  */
 void GetDerKey(ByteArray_t * key, const char * usage);
+/**
+ * Used by mbedTLS to retrieve trust ca cert private key
+ *
+ * @param[out] key key to be filled.
+ */
+void GetCaCertKey(ByteArray_t * key);
 /**
  * Used by mbedTLS to retrieve own primary cert private key
  *

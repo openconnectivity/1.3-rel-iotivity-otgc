@@ -72,7 +72,7 @@
 #include <mbedtls/pem.h>
 #endif
 
-#define TAG  "OIC_SRM_CREDL"
+#define TAG "OIC_SRM_CREDL"
 
 #ifdef HAVE_WINDOWS_H
 #include <wincrypt.h>
@@ -692,6 +692,11 @@ OCStackResult CredToCBORPayloadWithRownerWithRtAndIf(const OicSecCred_t *credS, 
     {
     	credRootMapSize = credRootMapSize - 2;
     }
+    
+    if (!rownerId)
+    {
+        credRootMapSize = credRootMapSize - 1;
+    }
 
     // Create CRED Root Map (creds, rownerid)
     cborEncoderResult = cbor_encoder_create_map(&encoder, &credRootMap, credRootMapSize);
@@ -895,6 +900,7 @@ OCStackResult CredToCBORPayloadWithRownerWithRtAndIf(const OicSecCred_t *credS, 
     cred = credS;
 
     // Rownerid
+    if (rownerId)
     {
         char *rowner = NULL;
         cborEncoderResult = cbor_encode_text_string(&credRootMap, OIC_JSON_ROWNERID_NAME,
@@ -3549,6 +3555,103 @@ static int ConvertDerCertToPem(const uint8_t* der, size_t derLen, uint8_t** pem)
     return 0;
 }
 
+const char UUID_WILDCARD[UUID_STRING_SIZE] = "2a000000-0000-0000-0000-000000000000"; // conversion result for '*' to UUID, possible collision with real UUID
+
+void GetIdentityHandler(UuidContext_t* ctx, unsigned char* crt, size_t crtLen)
+{
+    UuidInfo_t* cur = ctx->list;
+    if (NULL != ctx->list)
+    {
+        while (NULL != cur->next)
+        {
+            cur = cur->next;
+        }
+    }
+    
+    OicSecCred_t *cred = NULL;
+    LL_FOREACH(gCred, cred)
+    {
+        if (SIGNED_ASYMMETRIC_KEY != cred->credType)
+        {
+            continue;
+        }
+        if (0 == strcmp(cred->credUsage, MF_TRUST_CA))
+        {
+            continue;
+        }
+        
+        uint8_t *der = NULL;
+        size_t derLen = 0;
+        if ((OIC_ENCODING_BASE64 == cred->publicData.encoding) ||
+            (OIC_ENCODING_PEM == cred->publicData.encoding))
+        {
+            int ret = ConvertPemCertToDer((const char*)cred->publicData.data, cred->publicData.len, &der, &derLen);
+            if (0 > ret)
+            {
+                OIC_LOG_V(ERROR, TAG, "%s: Failed converting PEM cert to DER: %d", __func__, ret);
+                continue;
+            }
+        }
+        else
+        {
+            der = cred->publicData.data;
+            derLen = cred->publicData.len;
+        }
+        
+        if (derLen != crtLen || 0 != memcmp(der, crt, crtLen))
+        {
+            if (der != cred->publicData.data)
+            {
+                OICFree(der);
+            }
+            continue;
+        }
+        
+        if (der != cred->publicData.data)
+        {
+            OICFree(der);
+        }
+        
+        UuidInfo_t* node = (UuidInfo_t*) OICMalloc(sizeof(UuidInfo_t));
+        if (NULL == node)
+        {
+            OIC_LOG_V(ERROR, TAG, "%s: Could not allocate new UUID node", __func__);
+            continue;
+        }
+        node->next = NULL;
+        
+        if (0 == strcmp(cred->credUsage, TRUST_CA))
+        {
+            // Retrieve Device ID from doxm resource
+            OicUuid_t ownUuid = {.id={0}};
+            if (OC_STACK_OK == GetDoxmDeviceID(&ownUuid) && 0 == memcmp(cred->subject.id, ownUuid.id, sizeof(cred->subject.id)))
+            {
+                OIC_LOG (DEBUG, TAG, "Own Trust CA");
+                memcpy(node->uuid, UUID_WILDCARD, strlen(UUID_WILDCARD) + 1);
+            }
+            else
+            {
+                if (!OCConvertUuidToString(cred->subject.id, node->uuid))
+                {
+                    OIC_LOG_V(ERROR, TAG, "%s: Failed to convert subjectuuid to string", __func__);
+                    OICFree(node);
+                    continue;
+                }
+            }
+        }
+        
+        if (NULL == ctx->list)
+        {
+            ctx->list = node;
+        }
+        else
+        {
+            cur->next = node;
+        }
+        cur = node;
+    }
+}
+
 /* Caller must call OICFree on *pem when finished. */
 static int ConvertRawPrivateKeyToPem(const uint8_t* raw, size_t rawLen, uint8_t** pem)
 {
@@ -4041,6 +4144,115 @@ void GetDerKey(ByteArray_t * key, const char * usage)
     OIC_LOG_V(DEBUG, TAG, "Out %s", __func__);
 }
 
+void GetCaCertKey(ByteArray_t * key)
+{
+    OIC_LOG_V(DEBUG, TAG, "In %s", __func__);
+
+    VERIFY_NOT_NULL(TAG, key, ERROR);
+    
+    key->len = 0;
+    OicSecCred_t * temp = NULL;
+
+    LL_FOREACH(gCred, temp)
+    {
+        size_t length = temp->privateData.len;
+
+        if ((SIGNED_ASYMMETRIC_KEY == temp->credType || ASYMMETRIC_KEY == temp->credType) &&
+            (0 < length) &&
+            (NULL != temp->credUsage) &&
+            (0 == strcmp(temp->credUsage, TRUST_CA)))
+        {
+			uint8_t *p = NULL;
+			int mbedRet = 0;
+            uint8_t *pem = NULL;
+            size_t pemLen = 0;
+			bool mustFreePem = false;
+            bool mustAddNull = true;
+			
+            switch (temp->privateData.encoding)
+            {
+				case OIC_ENCODING_DER:
+                case OIC_ENCODING_RAW:
+					mbedRet = ConvertRawPrivateKeyToPem(temp->privateData.data, temp->privateData.len, &pem);
+					if (0 > mbedRet)
+					{
+						OIC_LOG_V(ERROR, TAG, "Failed to ConvertRawPrivateKeyToPem: %d", mbedRet);
+						return;
+					}
+					mustFreePem = true;
+					mustAddNull = false; /* mbedTLS always NULL-terminates. */
+					pemLen = strlen((char *)pem) + 1;
+					break;
+                case OIC_ENCODING_PEM:
+                {
+					pem = temp->privateData.data;
+					pemLen = temp->privateData.len;
+					
+					/* Make sure the buffer has a terminating NULL. If not, make sure we add one later. */
+					for (size_t i = pemLen - 1; i > 0; i--)
+					{
+						if ('\0' == (char)pem[i])
+						{
+							mustAddNull = false;
+							break;
+						}
+					}
+                    break;
+                }
+                default:
+                {
+                    OIC_LOG_V(WARNING, TAG, "Key for PRIMARY_CERT found, but it has an unknown encoding (%d)", temp->privateData.encoding);
+                    break;
+                }
+            }
+			
+			p = key->data;
+            key->data = OICRealloc(key->data, key->len + pemLen + (mustAddNull ? 1 : 0));
+            if (NULL == key->data)
+            {
+                OIC_LOG(ERROR, TAG, "No memory reallocating key->data");
+                OICFree(p);
+                if (mustFreePem)
+                {
+                    OICFree(pem);
+                }
+                return;
+            }
+			
+            memcpy(key->data, pem, pemLen);
+            key->len = pemLen;
+
+            /* If pem doesn't contain a terminating NULL, add one. */
+            if (mustAddNull)
+            {
+                assert(key->data[key->len - 1] != '\0');
+                key->data[key->len] = '\0';
+                key->len += 1;
+            }
+
+            if (mustFreePem)
+            {
+                OICFree(pem);
+            }
+
+            if (0 != key->len)
+            {
+                break;
+            }
+        }
+    }
+
+    if (0 == key->len)
+    {
+        OIC_LOG(WARNING, TAG, "Key for TRUST_CA not found");
+    }
+
+exit:
+    OIC_LOG_V(DEBUG, TAG, "Out %s", __func__);
+	return;
+}
+
+
 void GetPrimaryCertKey(ByteArray_t * key)
 {
     OIC_LOG_V(DEBUG, TAG, "In %s", __func__);
@@ -4196,6 +4408,7 @@ void InitCipherSuiteListInternal(bool * list, const char * usage, const char *de
     OicSecCred_t * temp = NULL;
     LL_FOREACH(gCred, temp)
     {
+        OIC_LOG_V(DEBUG, TAG, "credid=%d", temp->credId);
         switch (temp->credType)
         {
             case PIN_PASSWORD:
@@ -4219,6 +4432,7 @@ void InitCipherSuiteListInternal(bool * list, const char * usage, const char *de
             }
             case SIGNED_ASYMMETRIC_KEY:
             {
+                OIC_LOG_V(DEBUG, TAG, "SIGNED_ASYMMETRIC_KEY with credusage=%s found", temp->credUsage);
                 if (NULL != temp->credUsage && 0 == strcmp(temp->credUsage, usage))
                 {
                     list[1] = true;

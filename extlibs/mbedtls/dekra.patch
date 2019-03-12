@@ -1,0 +1,38 @@
+diff --git a/library/x509_csr.c b/library/x509_csr.c
+index f92b66c..a0b0ce1 100644
+--- a/library/x509_csr.c
++++ b/library/x509_csr.c
+@@ -215,11 +215,31 @@ int mbedtls_x509_csr_parse_der( mbedtls_x509_csr *csr,
+      *  the requester's expectations - this cannot cause a violation of our
+      *  signature policies.
+      */
++    len = 0;
+     if( ( ret = mbedtls_asn1_get_tag( &p, end, &len,
+             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC ) ) != 0 )
+     {
+-        mbedtls_x509_csr_free( csr );
+-        return( MBEDTLS_ERR_X509_INVALID_FORMAT + ret );
++        /*
++         * When no attributes are present, the request should include the correct empty
++         * SET OF structure (the DER encoding of which is 0xa0 0x00). This is:
++         *
++         *     Attributes:
++         *         a0:00
++         *
++         * However it is tolerated to miss the SET OF since certain CAs will only accept
++         * request containing no attributes in an invalid form:
++         *
++         *     Attributes:
++         *
++         * In order to support both case scenarios, if mbedtls_asn1_get_tag returns
++         * MBEDTLS_ERR_ASN1_OUT_OF_DATA and length of Attributes is zero, the error
++         * is ignored.
++         */
++        if ( !( ret == MBEDTLS_ERR_ASN1_OUT_OF_DATA && len == 0 ) )
++        {
++            mbedtls_x509_csr_free( csr );
++            return( MBEDTLS_ERR_X509_INVALID_FORMAT + ret );
++        }
+     }
+ 
+     p += len;

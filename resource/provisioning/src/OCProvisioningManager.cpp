@@ -336,6 +336,50 @@ namespace OC
 
         return result;
     }
+    
+    OCStackResult OCSecure::discoverSingleDeviceInSecureUnicast(bool filterOwnedByMe, unsigned short timeout,
+            const OicUuid_t* deviceID,
+            const std::string& address,
+            unsigned int port,
+            OCConnectivityType connectivityType,
+            std::shared_ptr<OCSecureResource> &foundDevice)
+    {
+        OCStackResult result = OC_STACK_ERROR;
+        OCProvisionDev_t *pDev = nullptr;
+        auto csdkLock = OCPlatform_impl::Instance().csdkLock();
+        auto cLock = csdkLock.lock();
+
+        if (cLock)
+        {
+            std::lock_guard<std::recursive_mutex> lock(*cLock);
+            result = OCDiscoverSingleDeviceInSecureUnicast(filterOwnedByMe, timeout, deviceID, address.c_str(), port, connectivityType, &pDev);
+
+            if (result == OC_STACK_OK)
+            {
+                if (pDev)
+                {
+                    foundDevice.reset(new OCSecureResource(csdkLock, pDev));
+                }
+                else
+                {
+                    oclog() <<"Not found Secure resource!";
+                    foundDevice.reset();
+                    result = OC_STACK_ERROR;
+                }
+            }
+            else
+            {
+                oclog() <<"Secure resource discovery failed!";
+            }
+        }
+        else
+        {
+            oclog() <<"Mutex not found";
+            result = OC_STACK_ERROR;
+        }
+
+        return result;
+    }
 
 #ifdef MULTIPLE_OWNER
     OCStackResult OCSecure::discoverMultipleOwnerEnabledDevices(unsigned short timeout,
@@ -1290,6 +1334,10 @@ namespace OC
             OCProvisionDev_t *dPtr)
         :m_csdkLock(csdkLock), devPtr(dPtr)
     {
+        if (!OCConvertUuidToString(devPtr->doxm->deviceID.id, devPtr->endpoint.remoteId))
+        {
+            oclog() <<"Can not convert uuid to struuid";
+        }
     }
 
     OCSecureResource::~OCSecureResource()
@@ -1471,6 +1519,8 @@ namespace OC
     
     OCStackResult OCSecureResource::getCredResource(CredResultCallBack resultCallback)
     {
+        //validateSecureResource();
+        
         if (!resultCallback)
         {
             oclog() << "result callback can't be null";
@@ -1915,7 +1965,7 @@ namespace OC
 
     void OCSecureResource::validateSecureResource()
     {
-        if (!devPtr)
+        if (!this && !devPtr)
         {
             throw OCException("Incomplete secure resource", OC_STACK_RESOURCE_ERROR);
         }

@@ -33,6 +33,7 @@
 #include "cacommon.h"
 #include "caipinterface.h"
 #include "oic_malloc.h"
+#include "utlist.h"
 #include "ocrandom.h"
 #include "experimental/byte_array.h"
 #include "octhread.h"
@@ -406,6 +407,12 @@ static CAgetCredentialTypesHandler g_getCredentialTypesCallback = NULL;
  * @brief callback to get X.509-based Public Key Infrastructure
  */
 static CAgetPkixInfoHandler g_getPkixInfoCallback = NULL;
+/**
+ * @var g_getIdentityCallback
+ *
+ * @brief callback to retrieve acceptable UUID list
+ */
+static CAgetIdentityHandler g_getIdentityCallback = NULL;
 
 /**
  * @var g_dtlsContextMutex
@@ -464,6 +471,13 @@ void CAsetPkixInfoCallback(CAgetPkixInfoHandler infoCallback)
 {
     OIC_LOG_V(DEBUG, NET_SSL_TAG, "In %s", __func__);
     g_getPkixInfoCallback = infoCallback;
+    OIC_LOG_V(DEBUG, NET_SSL_TAG, "Out %s", __func__);
+}
+
+void CAsetIdentityCallback(CAgetIdentityHandler identityCallback)
+{
+    OIC_LOG_V(DEBUG, NET_SSL_TAG, "In %s", __func__);
+    g_getIdentityCallback = identityCallback;
     OIC_LOG_V(DEBUG, NET_SSL_TAG, "Out %s", __func__);
 }
 
@@ -905,6 +919,10 @@ static SslEndPoint_t *GetSslPeer(const CAEndpoint_t *peer)
                 && (peer->port == tep->sep.endpoint.port || CA_ADAPTER_GATT_BTLE == peer->adapter))
         {
             OIC_LOG_V(DEBUG, NET_SSL_TAG, "Out %s", __func__);
+            if (tep->sep.endpoint.ifindex == 0)
+            {
+                tep->sep.endpoint.ifindex = peer->ifindex;
+            }
             return tep;
         }
     }
@@ -1322,6 +1340,71 @@ void CAcloseSslConnectionAll(CATransportAdapter_t transportType)
     OIC_LOG_V(DEBUG, NET_SSL_TAG, "Out %s", __func__);
     return;
 }
+
+const char UUID_WILDCARD[UUID_STRING_SIZE] = "2a000000-0000-0000-0000-000000000000"; // conversion result for '*' to UUID, possible collision with real UUID
+
+static int verifyIdentity(void *data, mbedtls_x509_crt *crt, int depth, uint32_t *flags) {
+    OC_UNUSED(data); // no need to pass extra data
+    OC_UNUSED(flags); // we do not remove any flags
+    if (g_getIdentityCallback != NULL)
+    {
+        static UuidContext_t ctx = { NULL };
+        g_getIdentityCallback(&ctx, crt->raw.p, crt->raw.len);
+        if (0 == depth) //leaf certificate
+        {
+            const mbedtls_x509_name *name = NULL;
+            /* Find the CN component of the subject name. */
+            for (name = &crt->subject; NULL != name; name = name->next)
+            {
+                if (name->oid.p &&
+                (name->oid.len <= MBEDTLS_OID_SIZE(MBEDTLS_OID_AT_CN)) &&
+                (0 == memcmp(MBEDTLS_OID_AT_CN, name->oid.p, name->oid.len)))
+                {
+                    break;
+                }
+            }
+            
+            if (NULL == name)
+            {
+                OIC_LOG(ERROR, NET_SSL_TAG, "Could not retrieve identity information from leaf certificate");
+                return -1;
+            }
+            const size_t uuidBufLen = UUID_STRING_SIZE -1;
+            const unsigned char *uuidPos = (const unsigned char*)memmem(name->val.p, name->val.len, UUID_PREFIX, sizeof(UUID_PREFIX) - 1);
+            /* If UUID_PREFIX is present, ensure there's enough data for the prefix plus an entire
+             * UUID, to make sure we don't read past the end of the buffer.
+             */
+            char uuid[UUID_STRING_SIZE] = { 0 };
+            if ((NULL != uuidPos) && (name->val.len >= ((uuidPos - name->val.p) + (sizeof(UUID_PREFIX) - 1) + uuidBufLen)))
+            {
+                memcpy(uuid, uuidPos + sizeof(UUID_PREFIX) - 1, uuidBufLen);
+            }
+            else
+            {
+                OIC_LOG(ERROR, NET_SSL_TAG, "Could not retrieve UUID from leaf certificate");
+                return -1;
+            }
+            
+            bool isMatched = false;
+            UuidInfo_t* node = NULL;
+            UuidInfo_t* tmpNode = NULL;
+            LL_FOREACH(ctx.list, node)
+            {
+                isMatched = isMatched || (0 == memcmp(node->uuid, uuid, UUID_STRING_SIZE));
+                isMatched = isMatched || (0 == memcmp(node->uuid, UUID_WILDCARD, UUID_STRING_SIZE));
+            }
+            LL_FOREACH_SAFE(ctx.list, node, tmpNode)
+            {
+                free(node);
+            }
+            ctx.list = NULL;
+            return isMatched ? 0 : -1;
+        }
+    }
+    
+    return 0;
+}
+
 /**
  * Creates session for endpoint.
  *
@@ -1348,6 +1431,8 @@ static SslEndPoint_t * NewSslEndPoint(const CAEndpoint_t * endpoint, mbedtls_ssl
     tep->sep.endpoint = *endpoint;
     tep->sep.endpoint.flags = (CATransportFlags_t)(tep->sep.endpoint.flags | CA_SECURE);
 
+    mbedtls_ssl_conf_verify(config, g_getIdentityCallback ? verifyIdentity : NULL, NULL);
+    
     if(0 != mbedtls_ssl_setup(&tep->ssl, config))
     {
         OIC_LOG(ERROR, NET_SSL_TAG, "Setup failed");
@@ -1457,31 +1542,40 @@ static void SetupCipher(mbedtls_ssl_config * config, CATransportAdapter_t adapte
     }
 
     memset(g_cipherSuitesList, 0, sizeof(g_cipherSuitesList));
-
-    // Add the preferred ciphersuite first
-    if (SSL_CIPHER_MAX != g_caSslContext->cipher)
+    
+    // Add the preferred ciphersuite
+    if (SSL_CIPHER_MAX != g_caSslContext->cipher && 
+        MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256 != tlsCipher[g_caSslContext->cipher][0])
     {
         g_cipherSuitesList[index] = tlsCipher[g_caSslContext->cipher][0];
         OIC_LOG_V(DEBUG, NET_SSL_TAG, "Preferred ciphersuite added");
         index++;
     }
-
-    // Add PSK ciphersuite
-    if (true == g_caSslContext->cipherFlag[0] &&
-                MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256 != tlsCipher[g_caSslContext->cipher][0])
+    
+    // Add PSK ciphersuite if it is found
+    if (true == g_caSslContext->cipherFlag[0])
     {
        g_cipherSuitesList[index] = MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256;
        OIC_LOG(DEBUG, NET_SSL_TAG, "PSK ciphersuite added");
        index++;
     }
+    
+    // Add preferred certificate ciphersuite if it is found
+    if (true == g_caSslContext->cipherFlag[1])
+    {
+        g_cipherSuitesList[index] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8; 
+        OIC_LOG(DEBUG, NET_SSL_TAG, "Certificate ciphersuite added");
+        index++;
+    }
 
-    // Add all certificate ciphersuites
+    // Add rest certificate ciphersuites
     if (true == g_caSslContext->cipherFlag[1])
     {
         for (unsigned int i = 0; i < SSL_CIPHER_MAX - 1; i++)
         {
-            if ((MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256 != tlsCipher[i][0]) &&
-                    (i != (unsigned int)g_caSslContext->cipher))
+            if ((MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256 != tlsCipher[i][0] || false == g_caSslContext->cipherFlag[0]) &&
+                (MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8 != tlsCipher[i][0] || false == g_caSslContext->cipherFlag[1]) /*&&
+                    (i != (unsigned int)g_caSslContext->cipher)*/)
             {
                 g_cipherSuitesList[index] = tlsCipher[i][0];
                 index ++;

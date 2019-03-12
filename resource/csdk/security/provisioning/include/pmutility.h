@@ -74,6 +74,23 @@ OCStackResult PMSingleDeviceDiscoveryInUnicast(unsigned short waittime, const Oi
                         OCProvisionDev_t **ppFoundDevice);
 
 /**
+ * Discover owned device in the specified secure endpoint/MAC address.
+ * It will return the found device even though timeout is not exceeded.
+ *
+ * @param[in] waittime           Timeout in seconds.
+ * @param[in] deviceID           deviceID of target device.
+ * @param[in] address           Address of target device.
+ * @param[in] port              Secure port in the host.
+ * @param[in] connType          ConnectivityType for discovery.
+ * @param[out] ppFoundDevice     OCProvisionDev_t of found device.
+ *
+ * @return OC_STACK_OK on success otherwise error.
+ *         OC_STACK_INVALID_PARAM when deviceID is NULL or ppFoundDevice is not initailized.
+ */
+OCStackResult PMDiscoverSingleDeviceInSecureUnicast(bool filterOwnedByMe, unsigned short waittime, const OicUuid_t* deviceID, const char* address,
+                        unsigned int port, OCConnectivityType connType, OCProvisionDev_t **ppFoundDevice);
+
+/**
  * Discover owned/unowned devices in the same IP subnet.
  *
  * @param[in] waittime      Timeout in seconds.

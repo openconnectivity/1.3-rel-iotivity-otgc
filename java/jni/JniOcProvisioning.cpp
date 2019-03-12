@@ -419,6 +419,81 @@ JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcProvisioning_discoverSingleDe
 
 /*
  * Class:     org_iotivity_base_OcProvisioning
+ * Method:    discoverSingleDeviceInSecureUnicast0
+ * Signature: (ZILjava/lang/String;Ljava/lang/String;II)Lorg/iotivity/base/OcSecureResource;
+ */
+JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcProvisioning_discoverSingleDeviceInSecureUnicast0
+  (JNIEnv *env, jclass clazz, jboolean filterOwnedByMe, jint jTimeout, jstring jDeviceId, jstring jAddress, jint jPort, jint jconnType)
+{
+    OC_UNUSED(clazz);
+    LOGI("OcProvisioning_discoverSingleDeviceInSecureUnicast0");
+    OicUuid_t deviceId;
+    std::shared_ptr<OC::OCSecureResource> device;
+   
+    if (jTimeout < 0)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "Timeout value cannot be negative");
+        return nullptr;
+    }
+    
+    if (!jDeviceId)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "Device ID cannot be null");
+        return nullptr;
+    }
+
+    if (!jAddress)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "Address cannot be null");
+        return nullptr;
+    }
+    
+    if (jPort < 0)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "Port cannot be negative");
+        return nullptr;
+    }
+
+    try
+    {
+        char* str = (char*)env->GetStringUTFChars(jDeviceId, NULL);
+        if (OC_STACK_OK == ConvertStrToUuid(str, &deviceId))
+        {
+            env->ReleaseStringUTFChars(jDeviceId, str);
+        }
+        else
+        {
+            return nullptr;
+        }
+        
+        std::string address = env->GetStringUTFChars(jAddress, nullptr);
+
+        OCStackResult result = OCSecure::discoverSingleDeviceInSecureUnicast(
+                filterOwnedByMe,
+                (unsigned short)jTimeout,
+                &deviceId,
+                address,
+                (unsigned int)jPort,
+                static_cast<OCConnectivityType>(jconnType),
+                device);
+        if (OC_STACK_OK != result)
+        {
+            ThrowOcException(result, "Failed to discover single device");
+            return nullptr;
+        }
+
+        return JniSecureUtils::convertDeviceToJava(env, device);
+    }
+    catch (OCException& e)
+    {
+        LOGE("%s", e.reason().c_str());
+        ThrowOcException(OC_STACK_ERROR, e.reason().c_str());
+        return nullptr;
+    }
+}
+
+/*
+ * Class:     org_iotivity_base_OcProvisioning
  * Method:    getDevicestatusLists
  * Signature: (I)[Lorg/iotivity/base/OcSecureResource;
  */

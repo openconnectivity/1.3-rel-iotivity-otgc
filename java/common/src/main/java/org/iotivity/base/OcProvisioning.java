@@ -115,6 +115,35 @@ public class OcProvisioning {
      */
     public static native OcSecureResource discoverSingleDeviceInUnicast(int timeout,
             String deviceId, String host, OcConnectivityType connectivityType) throws OcException;
+    
+    /**
+     * Method to Discover single device with unicast in a specific secure host.
+     *
+     * @param timeout     Timeout in sec.Time to listen for responses before
+     *                    returning the Object.
+	 * @param deviceId	  ID of the device to be found.
+	 * @param address     Address of the device.
+	 * @param port        Secure port of the host
+	 * @param connTypeSet Connectivity type to be used in the discovery.
+     *
+     * @return            OcSecureResource class object.
+     *
+     * @throws OcException Indicate discovery failure.
+     *                     Use OcException.GetErrorCode() for more details.
+     */
+    public static OcSecureResource discoverSingleDeviceInSecureUnicast(boolean filterOwnedByMe, int timeout, String deviceId,
+            String address, int port, EnumSet<OcConnectivityType> connTypeSet) throws OcException {
+        int connTypeInt = 0;
+        for (OcConnectivityType connType : OcConnectivityType.values()) {
+            if (connTypeSet.contains(connType))
+                connTypeInt |= connType.getValue();
+        }
+        
+        return OcProvisioning.discoverSingleDeviceInSecureUnicast0(filterOwnedByMe, timeout, deviceId, address, port, connTypeInt);
+    }
+    
+    private static native OcSecureResource discoverSingleDeviceInSecureUnicast0(boolean filterOwnedByMe, int timeout, String deviceId,
+            String address, int port, int connType) throws OcException;
 
     /**
      *  API for registering Ownership transfer methods for a particular

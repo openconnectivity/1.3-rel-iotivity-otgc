@@ -678,6 +678,9 @@ static OCStackResult PostProvisioningStatus(OTMContext_t* otmCtx);
  */
 static OCStackResult PostRownerUuid(OTMContext_t* otmCtx);
 
+OCStackResult GetAclToRemoveAnonAce(OTMContext_t* otmCtx);
+OCStackResult RemoveAllAnonAce(OTMContext_t* otmCtx, uint8_t* payload, size_t size);
+
 /**
  * Function to update pstat as Ready for Normal Operation.
  * This function would update 'dos.s' to DOS_RFNOP.
@@ -740,6 +743,10 @@ static void SetResult(OTMContext_t* otmCtx, const OCStackResult res)
         if(CA_STATUS_OK != CAregisterPkixInfoHandler(GetPkixInfo))
         {
             OIC_LOG(WARNING, TAG, "Failed to revert PkixInfoHandler.");
+        }
+        if(CA_STATUS_OK != CAregisterIdentityHandler(GetIdentityHandler))
+        {
+            OIC_LOG(WARNING, TAG, "Failed to set IdentityHandler.");
         }
         if(CA_STATUS_OK != CAregisterGetCredentialTypesHandler(InitCipherSuiteList))
         {
@@ -2002,10 +2009,10 @@ static OCStackApplicationResult ProvisioningStatusHandler(void *ctx, OCDoHandle 
             
             SetDosState(DOS_RFPRO);
 
-            res = PostNormalOperationStatus(otmCtx);
+            res = GetAclToRemoveAnonAce(otmCtx);
             if(OC_STACK_OK != res)
             {
-                OIC_LOG(ERROR, TAG, "Failed to update pstat");
+                OIC_LOG(ERROR, TAG, "Failed to remove anonymous ACE");
                 SetResult(otmCtx, res);
             }
         }
@@ -2019,6 +2026,131 @@ static OCStackApplicationResult ProvisioningStatusHandler(void *ctx, OCDoHandle 
 
 exit:
     OIC_LOG_V(INFO, TAG, "OUT ProvisioningStatusHandler.");
+    return OC_STACK_DELETE_TRANSACTION;
+}
+
+/**
+ * Response handler of get ACL resource.
+ *
+ * @param[in] ctx             ctx value passed to callback from calling function.
+ * @param[in] UNUSED          handle to an invocation
+ * @param[in] clientResponse  Response from queries to remote servers.
+ * @return  OC_STACK_DELETE_TRANSACTION to delete the transaction
+ *          and OC_STACK_KEEP_TRANSACTION to keep it.
+ */
+static OCStackApplicationResult AclToRemoveAnonAceHandler(void *ctx, OCDoHandle UNUSED,
+                                                       OCClientResponse *clientResponse)
+{
+    OIC_LOG_V(INFO, TAG, "IN AclToRemoveAnonAceHandler.");
+
+    VERIFY_NOT_NULL(TAG, clientResponse, ERROR);
+    VERIFY_NOT_NULL(TAG, ctx, ERROR);
+
+    OTMContext_t* otmCtx = (OTMContext_t*) ctx;
+    otmCtx->ocDoHandle = NULL;
+    (void)UNUSED;
+    OCStackResult res = OC_STACK_OK;
+
+    if(OC_STACK_OK == clientResponse->result)
+    {
+        if(otmCtx && otmCtx->selectedDeviceInfo)
+        {
+            uint8_t *payload = ((OCSecurityPayload*)clientResponse->payload)->securityData;
+            size_t size = ((OCSecurityPayload*)clientResponse->payload)->payloadSize;
+            
+            res = RemoveAllAnonAce(otmCtx, payload, size);
+            if(OC_STACK_OK != res)
+            {
+                OIC_LOG(ERROR, TAG, "Failed to remove anonymouse ACE");
+                SetResult(otmCtx, res);
+            }
+        }
+    }
+    else
+    {
+        OIC_LOG_V(INFO, TAG, "Error occured in AclToRemoveAnonAce :: %d\n",
+                            clientResponse->result);
+        SetResult(otmCtx, clientResponse->result);
+    }
+
+exit:
+    OIC_LOG_V(INFO, TAG, "OUT AclToRemoveAnonAceHandler.");
+    return OC_STACK_DELETE_TRANSACTION;
+}
+
+/**
+ * Response handler of remove all anonymous ACE.
+ *
+ * @param[in] ctx             ctx value passed to callback from calling function.
+ * @param[in] UNUSED          handle to an invocation
+ * @param[in] clientResponse  Response from queries to remote servers.
+ * @return  OC_STACK_DELETE_TRANSACTION to delete the transaction
+ *          and OC_STACK_KEEP_TRANSACTION to keep it.
+ */
+static OCStackApplicationResult RemoveLastAnonAceHandler(void *ctx, OCDoHandle UNUSED,
+                                                       OCClientResponse *clientResponse)
+{
+    OIC_LOG_V(INFO, TAG, "IN RemoveLastAnonAceHandler.");
+
+    VERIFY_NOT_NULL(TAG, clientResponse, ERROR);
+    VERIFY_NOT_NULL(TAG, ctx, ERROR);
+
+    OTMContext_t* otmCtx = (OTMContext_t*) ctx;
+    otmCtx->ocDoHandle = NULL;
+    (void)UNUSED;
+    OCStackResult res = OC_STACK_OK;
+
+    if(OC_STACK_RESOURCE_DELETED == clientResponse->result)
+    {
+        if(otmCtx && otmCtx->selectedDeviceInfo)
+        {
+            OIC_LOG(INFO, TAG, "Anonymous ACE have been removed.");
+
+            res = PostNormalOperationStatus(otmCtx);
+            if(OC_STACK_OK != res)
+            {
+                OIC_LOG(ERROR, TAG, "Failed to update pstat");
+                SetResult(otmCtx, res);
+            }
+        }
+    }
+    else
+    {
+        OIC_LOG_V(INFO, TAG, "Error occured in RemoveAllAnonAce: %d\n",
+                            clientResponse->result);
+        SetResult(otmCtx, clientResponse->result);
+    }
+
+exit:
+    OIC_LOG_V(INFO, TAG, "OUT RemoveAllAnonAceHandler.");
+    return OC_STACK_DELETE_TRANSACTION;
+}
+
+static OCStackApplicationResult RemoveAnonAceHandler(void *ctx, OCDoHandle UNUSED,
+                                                       OCClientResponse *clientResponse)
+{
+    OIC_LOG_V(INFO, TAG, "IN RemoveAllAnonAceHandler.");
+
+    VERIFY_NOT_NULL(TAG, clientResponse, ERROR);
+    VERIFY_NOT_NULL(TAG, ctx, ERROR);
+
+    OTMContext_t* otmCtx = (OTMContext_t*) ctx;
+    otmCtx->ocDoHandle = NULL;
+    (void)UNUSED;
+    OCStackResult res = OC_STACK_OK;
+
+    if(OC_STACK_RESOURCE_DELETED == clientResponse->result)
+    {
+        OIC_LOG(INFO, TAG, "Anonymous ACE have been removed.");
+    }
+    else
+    {
+        OIC_LOG_V(INFO, TAG, "Error occured in RemoveAllAnonAce :: %d\n",
+                            clientResponse->result);
+    }
+
+exit:
+    OIC_LOG_V(INFO, TAG, "OUT RemoveAnonAceHandler.");
     return OC_STACK_DELETE_TRANSACTION;
 }
 
@@ -3164,6 +3296,154 @@ OCStackResult PostProvisioningStatus(OTMContext_t* otmCtx)
     if (ret != OC_STACK_OK)
     {
         OIC_LOG(ERROR, TAG, "OCStack resource error");
+    }
+
+    OIC_LOG_V(INFO, TAG, "OUT %s", __func__);
+
+    return ret;
+}
+
+OCStackResult GetAclToRemoveAnonAce(OTMContext_t* otmCtx)
+{
+    OIC_LOG_V(INFO, TAG, "IN %s", __func__);
+
+    if(!otmCtx || !otmCtx->selectedDeviceInfo)
+    {
+        OIC_LOG(ERROR, TAG, "OTMContext is NULL");
+        return OC_STACK_INVALID_PARAM;
+    }
+
+    char query[MAX_URI_LENGTH + MAX_QUERY_LENGTH] = {0};
+    assert(otmCtx->selectedDeviceInfo->connType & CT_FLAG_SECURE);
+
+    if(!PMGenerateQuery(true,
+                        otmCtx->selectedDeviceInfo->endpoint.addr,
+                        getSecurePort(otmCtx->selectedDeviceInfo),
+                        otmCtx->selectedDeviceInfo->connType,
+                        query, sizeof(query), OIC_RSRC_ACL2_URI))
+    {
+        OIC_LOG_V(ERROR, TAG, "%s : Failed to generate query", __func__);
+        return OC_STACK_ERROR;
+    }
+    OIC_LOG_V(DEBUG, TAG, "Query=%s", query);
+
+    OCCallbackData cbData;
+    memset(&cbData, 0, sizeof(cbData));
+    cbData.cb = &AclToRemoveAnonAceHandler;
+    cbData.context = (void*)otmCtx;
+    cbData.cd = NULL;
+    OCStackResult ret = OCDoResource(&otmCtx->ocDoHandle, OC_REST_GET, query, 0, NULL,
+            otmCtx->selectedDeviceInfo->connType, OC_HIGH_QOS, &cbData, NULL, 0);
+    OIC_LOG_V(INFO, TAG, "OCDoResource returned: %d",ret);
+    if (ret != OC_STACK_OK)
+    {
+        OIC_LOG(ERROR, TAG, "OCStack resource error");
+    }
+
+    OIC_LOG_V(INFO, TAG, "OUT %s", __func__);
+
+    return ret;
+}
+
+OCStackResult RemoveAllAnonAce(OTMContext_t* otmCtx, uint8_t* payload, size_t size)
+{
+    OCStackResult ret = OC_STACK_ERROR;
+    
+    OIC_LOG_V(INFO, TAG, "IN %s", __func__);
+
+    if(!otmCtx || !otmCtx->selectedDeviceInfo)
+    {
+        OIC_LOG(ERROR, TAG, "OTMContext is NULL");
+        return OC_STACK_INVALID_PARAM;
+    }
+    
+    OIC_LOG_BUFFER(DEBUG, TAG, payload, size);
+    OicSecAcl_t *acl = CBORPayloadToAcl(payload, size);
+    if (NULL == acl)
+    {
+        OIC_LOG(ERROR, TAG, "ACL is Null");
+        OIC_LOG_V(INFO, TAG, "OUT %s", __func__);
+        return OC_STACK_ERROR;
+    }
+    
+    // Search anon ACE for security resources
+    AceIdList_t* aceListToDelete = NULL;
+    AceIdList_t* aceTmp1 = NULL;
+    AceIdList_t* aceTmp2 = NULL;
+    for (OicSecAce_t* ace = acl->aces; ace != NULL; ace = ace->next)
+    {
+        if (OicSecAceConntypeSubject == ace->subjectType && ANON_CLEAR == ace->subjectConn)
+        {
+            for (OicSecRsrc_t* resource = ace->resources; resource != NULL; resource = resource->next)
+            {
+                if (strcmp(resource->href, OICStrdup(OC_RSRVD_WELL_KNOWN_URI)) != 0
+                    && strcmp(resource->href, OICStrdup(OC_RSRVD_DEVICE_URI)) != 0
+                    && strcmp(resource->href, OICStrdup(OC_RSRVD_PLATFORM_URI)) != 0)
+                {
+                    if (aceListToDelete == NULL)
+                    {
+                        aceListToDelete = (AceIdList_t*)malloc(sizeof(AceIdList_t));
+                        aceListToDelete->aceid = ace->aceid;
+                        aceListToDelete->next = NULL;
+                        aceTmp1 = aceListToDelete;
+                    }
+                    else
+                    {
+                        aceTmp2 = (AceIdList_t*)malloc(sizeof(AceIdList_t));
+                        aceTmp2->aceid = ace->aceid;
+                        aceTmp2->next = NULL;
+                        aceTmp1->next = aceTmp2;
+                        aceTmp1 = aceTmp1->next;
+                    }
+                    
+                    //aceid = ace->aceid;
+                    break;
+                }
+            }
+        }
+    }
+    
+    LL_FOREACH_SAFE(aceListToDelete, aceTmp1, aceTmp2)
+    {
+        char uri[MAX_URI_LENGTH] = { 0 };
+        snprintf(uri, MAX_URI_LENGTH, "%s?aceid=%d", OIC_RSRC_ACL2_URI, aceTmp1->aceid);
+
+        char query[MAX_URI_LENGTH + MAX_QUERY_LENGTH] = {0};
+        assert(otmCtx->selectedDeviceInfo->connType & CT_FLAG_SECURE);
+
+        if(!PMGenerateQuery(true,
+                            otmCtx->selectedDeviceInfo->endpoint.addr,
+                            getSecurePort(otmCtx->selectedDeviceInfo),
+                            otmCtx->selectedDeviceInfo->connType,
+                            query, sizeof(query), uri))
+        {
+            OIC_LOG_V(ERROR, TAG, "%s : Failed to generate query", __func__);
+            return OC_STACK_ERROR;
+        }
+        OIC_LOG_V(DEBUG, TAG, "Query=%s", query);
+        
+        OCCallbackData cbData;
+        memset(&cbData, 0, sizeof(cbData));
+        if (NULL == aceTmp1->next)
+        {
+            cbData.cb = &RemoveLastAnonAceHandler;
+        }
+        else
+        {
+            cbData.cb = &RemoveAnonAceHandler;
+        }
+        cbData.context = (void*)otmCtx;
+        cbData.cd = NULL;
+        ret = OCDoResource(&otmCtx->ocDoHandle, OC_REST_DELETE, query, 0, NULL,
+                otmCtx->selectedDeviceInfo->connType, OC_HIGH_QOS, &cbData, NULL, 0);
+        OIC_LOG_V(INFO, TAG, "OCDoResource returned: %d",ret);
+        if (ret != OC_STACK_OK)
+        {
+            OIC_LOG(ERROR, TAG, "OCStack resource error");
+        }
+        
+        LL_DELETE(aceListToDelete, aceTmp1);
+        OICFree(aceTmp1);
     }
 
     OIC_LOG_V(INFO, TAG, "OUT %s", __func__);

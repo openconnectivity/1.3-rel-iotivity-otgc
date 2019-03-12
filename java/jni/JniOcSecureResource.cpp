@@ -277,6 +277,7 @@ void JniOcSecureResource::RemoveGetCredentialsListener(JNIEnv* env, jobject jLis
 
 OCStackResult JniOcSecureResource::doOwnershipTransfer(JNIEnv* env, jobject jListener)
 {
+    OCStackResult ret = OC_STACK_ERROR;
     JniProvisionResultListner *resultListener = AddProvisionResultListener(env, jListener);
 
     ResultCallBack resultCallback = [resultListener](PMResultList_t *result, int hasError)
@@ -284,19 +285,33 @@ OCStackResult JniOcSecureResource::doOwnershipTransfer(JNIEnv* env, jobject jLis
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::OWNERSHIPTRANSFER);
     };
 
-    return m_sharedSecureResource->doOwnershipTransfer(resultCallback);
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->doOwnershipTransfer(resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::getLinkedDevices(JNIEnv *env, UuidList_t &uuidList)
 {
     OC_UNUSED(env);
-    return m_sharedSecureResource->getLinkedDevices(uuidList);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->getLinkedDevices(uuidList);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::getSupportedOTMethods(JNIEnv *env, OicSecOxm_t** oxm, size_t* oxmLen)
 {
     OC_UNUSED(env);
-    return m_sharedSecureResource->getSupportedOTMethods(oxm, oxmLen);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->getSupportedOTMethods(oxm, oxmLen);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::removeDevice(JNIEnv* env, jint timeout, jobject jListener)
@@ -312,7 +327,12 @@ OCStackResult JniOcSecureResource::removeDevice(JNIEnv* env, jint timeout, jobje
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::REMOVEDEVICE);
     };
 
-    return m_sharedSecureResource->removeDevice(static_cast<unsigned short>(timeout), resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->removeDevice(static_cast<unsigned short>(timeout), resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::resetDevice(JNIEnv* env, jint timeout, jobject jListener)
@@ -328,7 +348,12 @@ OCStackResult JniOcSecureResource::resetDevice(JNIEnv* env, jint timeout, jobjec
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::RESETDEVICE);
     };
 
-    return m_sharedSecureResource->resetDevice(static_cast<unsigned short>(timeout), resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->resetDevice(static_cast<unsigned short>(timeout), resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::unlinkDevices(JNIEnv* env, jobject _device2, jobject jListener)
@@ -346,7 +371,12 @@ OCStackResult JniOcSecureResource::unlinkDevices(JNIEnv* env, jobject _device2, 
         return OC_STACK_ERROR;
     }
 
-    return m_sharedSecureResource->unlinkDevices(*device2->getDevicePtr(), resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->unlinkDevices(*device2->getDevicePtr(), resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::provisionCredentials(JNIEnv* env, jint type, jint keySize,
@@ -367,8 +397,13 @@ OCStackResult JniOcSecureResource::provisionCredentials(JNIEnv* env, jint type, 
 
     Credential cred((OicSecCredType_t)type, keySize);
 
-    return m_sharedSecureResource->provisionCredentials(cred, *device2->getDevicePtr(),
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionCredentials(cred, *device2->getDevicePtr(),
             resultCallback);
+    }
+    return ret;
 }
 
 #if defined(__WITH_DTLS__) || defined(__WITH_TLS__)
@@ -382,8 +417,13 @@ OCStackResult JniOcSecureResource::provisionTrustCertChain(JNIEnv* env, jint typ
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::PROVISIONTRUSTCERTCHAIN);
     };
 
-    return m_sharedSecureResource->provisionTrustCertChain((OicSecCredType_t)type,
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionTrustCertChain((OicSecCredType_t)type,
             static_cast<uint16_t>(credId), resultCallback);
+    }
+    return ret;
 }
 #endif
 
@@ -396,7 +436,12 @@ OCStackResult JniOcSecureResource::provisionCertificate(JNIEnv* env, std::string
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::PROVISIONCERTIFICATE);
     };
 
-    return m_sharedSecureResource->provisionCertificate(pemCert.c_str(), resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionCertificate(pemCert.c_str(), resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::provisionIdentityCertificate(JNIEnv* env, jobject jListener)
@@ -408,7 +453,12 @@ OCStackResult JniOcSecureResource::provisionIdentityCertificate(JNIEnv* env, job
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::PROVISIONIDENTITYCERTIFICATE);
     };
 
-    return m_sharedSecureResource->provisionIdentityCertificate(resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionIdentityCertificate(resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::provisionRoleCertificate(JNIEnv* env, std::string role, std::string authority, jobject jListener)
@@ -417,10 +467,15 @@ OCStackResult JniOcSecureResource::provisionRoleCertificate(JNIEnv* env, std::st
 
     ResultCallBack resultCallback = [resultListener](PMResultList_t *result, int hasError)
     {
-        resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::PROVISIONCERTIFICATE);
+        resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::PROVISIONROLECERTIFICATE);
     };
 
-    return m_sharedSecureResource->provisionRoleCertificate(role.c_str(), authority.c_str(), resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionRoleCertificate(role.c_str(), authority.c_str(), resultCallback);
+    }
+    return ret;
 }
     
 OCStackResult JniOcSecureResource::getACL(JNIEnv* env, jobject jListener)
@@ -432,14 +487,17 @@ OCStackResult JniOcSecureResource::getACL(JNIEnv* env, jobject jListener)
     {
         resultListener->GetAclResultListener(result, hasError);
     };
-    ret = m_sharedSecureResource->getAclResource(resultCallback);
-
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->getAclResource(resultCallback);
+    }
     return ret;
 }
 
 OCStackResult JniOcSecureResource::provisionACL(JNIEnv* env, jobject _acl, jobject jListener)
 {
-    OCStackResult ret;
+    OCStackResult ret = OC_STACK_ERROR;
     JniProvisionResultListner *resultListener = AddProvisionResultListener(env, jListener);
     OicSecAcl_t *acl = (OicSecAcl_t*)OICCalloc(1, sizeof(OicSecAcl_t));
 
@@ -460,7 +518,11 @@ OCStackResult JniOcSecureResource::provisionACL(JNIEnv* env, jobject _acl, jobje
         DeleteACLList(acl);
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::PROVISIONACL);
     };
-    ret = m_sharedSecureResource->provisionACL(acl, resultCallback);
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionACL(acl, resultCallback);
+    }
 
     if (ret != OC_STACK_OK)
     {
@@ -483,7 +545,12 @@ OCStackResult JniOcSecureResource::deleteACE(JNIEnv* env, jint aceId, jobject jL
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::DELETEACE);
     };
     
-    return m_sharedSecureResource->deleteACE(static_cast<unsigned short>(aceId), resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->deleteACE(static_cast<unsigned short>(aceId), resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::getCred(JNIEnv* env, jobject jListener)
@@ -495,7 +562,11 @@ OCStackResult JniOcSecureResource::getCred(JNIEnv* env, jobject jListener)
     {
         resultListener->GetCredentialsResultListener(result, hasError);
     };
-    ret = m_sharedSecureResource->getCredResource(resultCallback);
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->getCredResource(resultCallback);
+    }
 
     return ret;
 }
@@ -513,13 +584,18 @@ OCStackResult JniOcSecureResource::deleteCredential(JNIEnv* env, jint credId, jo
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::DELETECRED);
     };
     
-    return m_sharedSecureResource->deleteCred(static_cast<unsigned short>(credId), resultCallback);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->deleteCred(static_cast<unsigned short>(credId), resultCallback);
+    }
+    return ret;
 }
 
 OCStackResult JniOcSecureResource::provisionPairwiseDevices(JNIEnv* env, jint type, jint keySize,
         jobject _acl1, jobject _device2, jobject _acl2, jobject jListener)
 {
-    OCStackResult ret;
+    OCStackResult ret = OC_STACK_ERROR;
     if(!jListener)
     {
         return OC_STACK_INVALID_CALLBACK;
@@ -577,8 +653,13 @@ OCStackResult JniOcSecureResource::provisionPairwiseDevices(JNIEnv* env, jint ty
     };
 
 
-    ret = m_sharedSecureResource->provisionPairwiseDevices(cred, acl1,
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionPairwiseDevices(cred, acl1,
             *device2->getDevicePtr(), acl2, resultCallback);
+    }
+    
     if (ret != OC_STACK_OK)
     {
         DeleteACLList(acl1);
@@ -589,61 +670,81 @@ OCStackResult JniOcSecureResource::provisionPairwiseDevices(JNIEnv* env, jint ty
 
 OCStackResult JniOcSecureResource::selectOTMethod(JNIEnv* env, jint oxmSel, jobject jListener)
 {
-    OCStackResult ret;
+    OCStackResult ret = OC_STACK_ERROR;
     JniProvisionResultListner *resultListener = AddProvisionResultListener(env, jListener);
 
     ResultCallBack resultCallback = [resultListener](PMResultList_t *result, int hasError)
     {
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::SELECT_OTM_METHOD);
     };
-    ret = m_sharedSecureResource->selectOTMethod((const OicSecOxm_t)oxmSel, resultCallback);
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->selectOTMethod((const OicSecOxm_t)oxmSel, resultCallback);
+    }
     return ret;
 }
 
 OCStackResult JniOcSecureResource::setOTMethod(JNIEnv* env, jint oxmSel)
 {
-    return m_sharedSecureResource->setOTMethod((const OicSecOxm_t)oxmSel);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->setOTMethod((const OicSecOxm_t)oxmSel);
+    }
+    return ret;
 }
 
 #if defined(MULTIPLE_OWNER)
 OCStackResult JniOcSecureResource::selectMOTMethod(JNIEnv* env, jint oxmSel, jobject jListener)
 {
-    OCStackResult ret;
+    OCStackResult ret = OC_STACK_ERROR;
     JniProvisionResultListner *resultListener = AddProvisionResultListener(env, jListener);
 
     ResultCallBack resultCallback = [resultListener](PMResultList_t *result, int hasError)
     {
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::SELECT_OTM_METHOD);
     };
-    ret = m_sharedSecureResource->selectMOTMethod((const OicSecOxm_t)oxmSel, resultCallback);
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->selectMOTMethod((const OicSecOxm_t)oxmSel, resultCallback);
+    }
     return ret;
 }
 
 OCStackResult JniOcSecureResource::changeMOTMode(JNIEnv* env, jint momType, jobject jListener)
 {
-    OCStackResult ret;
+    OCStackResult ret = OC_STACK_ERROR;
     JniProvisionResultListner *resultListener = AddProvisionResultListener(env, jListener);
 
     ResultCallBack resultCallback = [resultListener](PMResultList_t *result, int hasError)
     {
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::CHANGE_MOT_MODE);
     };
-    ret = m_sharedSecureResource->changeMOTMode((const OicSecMomType_t)momType, resultCallback);
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->changeMOTMode((const OicSecMomType_t)momType, resultCallback);
+    }
     return ret;
 }
 
 OCStackResult JniOcSecureResource::addPreconfigPIN(JNIEnv* env, std::string pin, int size)
 {
     OC_UNUSED(env);
-    OCStackResult ret;
-    ret = m_sharedSecureResource->addPreconfigPIN(pin.c_str(), (size_t) size);
+    OCStackResult ret = OC_STACK_ERROR;
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->addPreconfigPIN(pin.c_str(), (size_t) size);
+    }
     return ret;
 }
 
 OCStackResult JniOcSecureResource::provisionPreconfPin(JNIEnv* env, std::string pin,
         int size, jobject jListener)
 {
-    OCStackResult ret;
+    OCStackResult ret = OC_STACK_ERROR;
     JniProvisionResultListner *resultListener = AddProvisionResultListener(env, jListener);
 
     ResultCallBack resultCallback = [resultListener](PMResultList_t *result, int hasError)
@@ -651,20 +752,27 @@ OCStackResult JniOcSecureResource::provisionPreconfPin(JNIEnv* env, std::string 
         resultListener->ProvisionResultCallback(result, hasError,
                 ListenerFunc::PROVISION_PRE_CONFIG_PIN);
     };
-    ret = m_sharedSecureResource->provisionPreconfPin(pin.c_str(), (size_t)size, resultCallback);
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->provisionPreconfPin(pin.c_str(), (size_t)size, resultCallback);
+    }
     return ret;
 }
 
 OCStackResult JniOcSecureResource::doMultipleOwnershipTransfer(JNIEnv* env, jobject jListener)
 {
-    OCStackResult ret;
+    OCStackResult ret = OC_STACK_ERROR;
     JniProvisionResultListner *resultListener = AddProvisionResultListener(env, jListener);
 
     ResultCallBack resultCallback = [resultListener](PMResultList_t *result, int hasError)
     {
         resultListener->ProvisionResultCallback(result, hasError, ListenerFunc::MULTIPLE_OXM);
     };
-    ret = m_sharedSecureResource->doMultipleOwnershipTransfer(resultCallback);
+    
+    if (m_sharedSecureResource)
+    {
+        ret = m_sharedSecureResource->doMultipleOwnershipTransfer(resultCallback);
+    }
     return ret;
 }
 #endif

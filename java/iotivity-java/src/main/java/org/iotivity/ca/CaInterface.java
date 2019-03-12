@@ -29,6 +29,8 @@ class BluetoothDevice {}
 
 public class CaInterface {
     static {
+        System.loadLibrary("connectivity_abstraction");
+        System.loadLibrary("ca-interface");
     }
     private static volatile boolean isConnectionManagerInitialized = false;
     private static volatile boolean isBtPairingInitialized = false;
@@ -156,6 +158,11 @@ public class CaInterface {
         CaInterface.initCheckForBtPairingUtil();
         CaInterface.caBtPairingCreateBond(device);
     }
+    
+    public synchronized static int setCipherSuite(OicCipher cipher, OcConnectivityType connType){
+        return CaInterface.setCipherSuiteImpl(cipher.getValue(), connType.getValue());
+    }
+    private static native int setCipherSuiteImpl(int cipher, int adapter);
 
     public interface OnBtDeviceFoundListener {
         public void onBtDeviceFound(BluetoothDevice device) throws OcException;

@@ -47,6 +47,12 @@ target_os = env.get('TARGET_OS')
 if target_os == 'arduino':
     SConscript('arduino.scons')
 
+if target_os == 'linux' and env.get('BUILD_JAVA'):
+    root_dir = env.get('SRC_DIR')
+    patch_file = os.path.join(root_dir, 'dekra_patch', 'fix_blob_type_db.patch')
+    cmd = 'git apply %s' % patch_file
+    res = os.system(cmd)
+
 # By default, src_dir is the current dir, build_dir is:
 #     ./out/<target_os>/<target_arch>/<release or debug>/
 #

@@ -34,4 +34,5 @@ ipca_env.AppendUnique(LIBS = ['mbedcrypto'])
 SConscript('src/SConscript', 'ipca_env')
 
 # Build examples
-SConscript('samples/SConscript', 'ipca_env')
+if env.get('BUILD_SAMPLE') == 'ON':
+    SConscript('samples/SConscript', 'ipca_env')

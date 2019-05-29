@@ -139,10 +139,10 @@ if target_os == 'arduino':
     enrollee_env.UserInstallTargetLib(enrollee_sdk_static, 'libESEnrollee')
 
 #Go to build sample apps
-#if target_os == 'arduino':
-#    SConscript('../sampleapp/enrollee/arduino/SConscript')
+if target_os == 'arduino' and env.get('BUILD_SAMPLE') == 'ON':
+    SConscript('../sampleapp/enrollee/arduino/SConscript')
 
-if target_os in ['linux']:
+if target_os in ['linux'] and env.get('BUILD_SAMPLE') == 'ON':
     SConscript('../sampleapp/enrollee/linux/SConscript')
     #Build UnitTestcases for Enrollee
     if enrollee_env.get('SECURED') == '0':

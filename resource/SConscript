@@ -50,7 +50,7 @@ if target_os in ['windows', 'linux']:
     # Build IoTivity Procedural Client API
     SConscript('IPCA/SConscript')
 
-if target_os not in ['arduino','darwin','ios','android']:
+if target_os not in ['arduino','darwin','ios','android'] and env.get('BUILD_SAMPLE') == 'ON':
     # Build examples
     SConscript('examples/SConscript')
 

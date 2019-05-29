@@ -197,11 +197,11 @@ if target_os in ['android']:
 ######################################################################
 # Build RichSDK Mediator Sample App
 ################################################ ######################
-if target_os in ['linux']:
+if target_os in ['linux'] and env.get('BUILD_SAMPLE') == 'ON':
     SConscript('../../sampleapp/mediator/linux/richsdk_sample/SConscript')
 
  
-if target_os in ['android']:
+if target_os in ['android'] and env.get('BUILD_SAMPLE') == 'ON':
     SConscript('../../sampleapp/mediator/android/SConscript')
 
 ######################################################################

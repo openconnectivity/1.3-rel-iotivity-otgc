@@ -27,7 +27,8 @@ import os
 liboctbstack_env = env.Clone()
 
 # Build C Samples
-SConscript('samples/SConscript',
+if env.get('BUILD_SAMPLE') == 'ON':
+    SConscript('samples/SConscript',
            exports={'stacksamples_env': liboctbstack_env})
 
 SConscript('#/resource/third_party_libs.scons',

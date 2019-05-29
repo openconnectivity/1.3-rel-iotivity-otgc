@@ -3376,9 +3376,10 @@ OCStackResult RemoveAllAnonAce(OTMContext_t* otmCtx, uint8_t* payload, size_t si
         {
             for (OicSecRsrc_t* resource = ace->resources; resource != NULL; resource = resource->next)
             {
-                if (strcmp(resource->href, OICStrdup(OC_RSRVD_WELL_KNOWN_URI)) != 0
+                if ((resource->wildcard != NULL && (resource->wildcard == ALL_RESOURCES || resource->wildcard == ALL_DISCOVERABLE))
+                    || (resource->href != NULL && strcmp(resource->href, OICStrdup(OC_RSRVD_WELL_KNOWN_URI)) != 0
                     && strcmp(resource->href, OICStrdup(OC_RSRVD_DEVICE_URI)) != 0
-                    && strcmp(resource->href, OICStrdup(OC_RSRVD_PLATFORM_URI)) != 0)
+                    && strcmp(resource->href, OICStrdup(OC_RSRVD_PLATFORM_URI)) != 0))
                 {
                     if (aceListToDelete == NULL)
                     {

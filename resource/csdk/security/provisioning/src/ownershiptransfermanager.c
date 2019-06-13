@@ -2078,6 +2078,177 @@ exit:
     return OC_STACK_DELETE_TRANSACTION;
 }
 
+static OCStackApplicationResult AnonAclHandler(void *ctx, OCDoHandle handle,
+                                OCClientResponse *clientResponse)
+{
+    OIC_LOG(INFO, TAG, "IN AnonAclHandler");
+
+    OC_UNUSED(handle);
+
+    VERIFY_NOT_NULL(TAG, ctx, WARNING);
+    OTMContext_t* otmCtx = (OTMContext_t*)ctx;
+    VERIFY_NOT_NULL(TAG, otmCtx->selectedDeviceInfo, WARNING);
+    OCProvisionDev_t* selectedDeviceInfo = otmCtx->selectedDeviceInfo;
+    VERIFY_NOT_NULL(TAG, clientResponse, WARNING);
+
+    otmCtx->ocDoHandle = NULL;
+
+    OCStackResult res = clientResponse->result;
+    OIC_LOG(INFO, TAG, "Client response");
+    if(OC_STACK_RESOURCE_CHANGED == res)
+    {
+        OIC_LOG(INFO, TAG, "Client response changed");
+        if(NULL != selectedDeviceInfo)
+        {
+            res = PostNormalOperationStatus(otmCtx);
+            if(OC_STACK_OK != res)
+            {
+                OIC_LOG(ERROR, TAG, "Failed to update pstat");
+                SetResult(otmCtx, res);
+            }
+        }
+    }
+    else
+    {
+        OIC_LOG_V(ERROR, TAG, "AnonAclHandler : Unexpected result %d", res);
+        SetResult(otmCtx, res);
+    }
+exit:
+    OIC_LOG(DEBUG, TAG, "OUT AnonAclHandler");
+    return  OC_STACK_DELETE_TRANSACTION;
+}
+
+static OicSecAcl_t* GenerateAnonAcl(const OicUuid_t* owner)
+{
+    OicSecAcl_t* anonAcl = (OicSecAcl_t*)OICCalloc(1, sizeof(OicSecAcl_t));
+    OicSecAce_t* anonAce = (OicSecAce_t*)OICCalloc(1, sizeof(OicSecAce_t));
+    OicSecRsrc_t* anonRsrc = (OicSecRsrc_t*)OICCalloc(1, sizeof(OicSecRsrc_t)); // TODO IOT-2192
+    if(NULL == anonAcl || NULL == anonAce || NULL == anonRsrc)
+    {
+        OIC_LOG(ERROR, TAG, "Failed to memory allocation");
+        goto error;
+    }
+    LL_APPEND(anonAcl->aces, anonAce);
+    LL_APPEND(anonAce->resources, anonRsrc);
+
+    //Set resource owner as PT
+    memcpy(anonAcl->rownerID.id, owner->id, sizeof(owner->id));
+
+    //PT has read permission.
+    anonAce->permission = PERMISSION_READ;
+
+    //Set subject for anonymous connection
+    anonAce->subjectType = OicSecAceConntypeSubject;
+    anonAce->subjectConn = ANON_CLEAR;
+    
+    anonRsrc->href = "/oic/res";
+    anonRsrc->next = (OicSecRsrc_t*)OICCalloc(1, sizeof(OicSecRsrc_t));
+    anonRsrc->next->href = "/oic/d";
+    anonRsrc->next->next =(OicSecRsrc_t*)OICCalloc(1, sizeof(OicSecRsrc_t));
+    anonRsrc->next->next->href = "/oid/p";
+
+    return anonAcl;
+
+error:
+    //in case of memory allocation failed, each resource should be removed individually.
+    if(NULL == anonAcl || NULL == anonAce || NULL == anonRsrc)
+    {
+        OICFree(anonAcl);
+        OICFree(anonAce);
+        OICFree(anonRsrc);
+    }
+    else
+    {
+        DeleteACLList(anonAcl);
+    }
+    return NULL;
+}
+
+static OCStackResult PostAnonAcl(OTMContext_t* otmCtx)
+{
+    OCStackResult res = OC_STACK_ERROR;
+
+    OIC_LOG(INFO, TAG, "IN PostAnonAcl");
+
+    if(!otmCtx || !otmCtx->selectedDeviceInfo)
+    {
+        OIC_LOG(ERROR, TAG, "Invalid parameters");
+        return OC_STACK_INVALID_PARAM;
+    }
+    const char * aclUri = OIC_RSRC_ACL2_URI;
+    OCProvisionDev_t* deviceInfo = otmCtx->selectedDeviceInfo;
+    char query[MAX_URI_LENGTH + MAX_QUERY_LENGTH] = {0};
+    OicSecAcl_t* anonAcl = NULL;
+    assert(deviceInfo->connType & CT_FLAG_SECURE);
+
+    if(!PMGenerateQuery(true,
+                        deviceInfo->endpoint.addr, getSecurePort(deviceInfo),
+                        deviceInfo->connType,
+                        query, sizeof(query), aclUri))
+    {
+        OIC_LOG(ERROR, TAG, "Failed to generate query");
+        return OC_STACK_ERROR;
+    }
+    OIC_LOG_V(INFO, TAG, "Query=%s", query);
+
+    OicUuid_t ownerID;
+    res = GetDoxmDeviceID(&ownerID);
+    if(OC_STACK_OK != res)
+    {
+        OIC_LOG(ERROR, TAG, "Failed to generate owner ACL");
+        return res;
+    }
+
+    //Generate anonymous ACL for new device
+    anonAcl = GenerateAnonAcl(&ownerID);
+    if(NULL == anonAcl)
+    {
+        OIC_LOG(ERROR, TAG, "Failed to generate owner ACL");
+        return OC_STACK_NO_MEMORY;
+    }
+
+    //Generate ACL payload
+    OCSecurityPayload* secPayload = (OCSecurityPayload*)OICCalloc(1, sizeof(OCSecurityPayload));
+    if(!secPayload)
+    {
+        OIC_LOG(ERROR, TAG, "Failed to memory allocation");
+        res = OC_STACK_NO_MEMORY;
+        goto error;
+    }
+
+    res = AclToCBORPayloadWithRtAndIf(anonAcl, OIC_SEC_ACL_V2, &secPayload->securityData, &secPayload->payloadSize, false);
+    if (OC_STACK_OK != res)
+    {
+        OICFree(secPayload);
+        OIC_LOG(ERROR, TAG, "Error while converting bin to cbor.");
+        goto error;
+    }
+    secPayload->base.type = PAYLOAD_TYPE_SECURITY;
+
+    OIC_LOG(INFO, TAG, "Anon ACL Payload:");
+    OIC_LOG_BUFFER(INFO, TAG, secPayload->securityData, secPayload->payloadSize);
+
+    OCCallbackData cbData;
+    cbData.cb = &AnonAclHandler;
+    cbData.context = (void *)otmCtx;
+    cbData.cd = NULL;
+    res = OCDoResource(&otmCtx->ocDoHandle, OC_REST_POST, query,
+                                     &deviceInfo->endpoint, (OCPayload*)secPayload,
+                                     deviceInfo->connType, OC_HIGH_QOS, &cbData, NULL, 0);
+    if (res != OC_STACK_OK)
+    {
+        OIC_LOG(ERROR, TAG, "OCStack resource error");
+        goto error;
+    }
+
+    OIC_LOG(INFO, TAG, "OUT PostAnonAcl");
+
+error:
+    //DeleteACLList(anonAcl);
+
+    return OC_STACK_OK;
+}
+
 /**
  * Response handler of remove all anonymous ACE.
  *
@@ -2106,10 +2277,10 @@ static OCStackApplicationResult RemoveLastAnonAceHandler(void *ctx, OCDoHandle U
         {
             OIC_LOG(INFO, TAG, "Anonymous ACE have been removed.");
 
-            res = PostNormalOperationStatus(otmCtx);
+            res = PostAnonAcl(otmCtx);
             if(OC_STACK_OK != res)
             {
-                OIC_LOG(ERROR, TAG, "Failed to update pstat");
+                OIC_LOG(ERROR, TAG, "Failed to add anonymous ACE");
                 SetResult(otmCtx, res);
             }
         }
